@@ -1,0 +1,78 @@
+<div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+    <div class="max-w-container mx-auto px-4 pt-4 sm:px-6 lg:flex lg:px-8">
+<form [formGroup]="profileForm" (ngSubmit)="handleSubmit()">  
+    <div class="space-y-12">
+      <div class="border-b border-gray-900/10 pb-12">
+        <h2 class="text-base/7 font-semibold text-gray-900">Profile</h2>
+        <p class="mt-1 text-sm/6 text-gray-600">This information will be displayed publicly so be careful what you share.</p>
+  
+        <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+          <div class="sm:col-span-4">
+            <label for="username" class="block text-sm/6 font-medium text-gray-900">Username</label>
+            <div class="mt-2">
+              <div class="flex items-center rounded-md bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600">
+                <div class="shrink-0 select-none text-base text-gray-500 sm:text-sm/6">app.shibidi.my/</div>
+                <input type="text" formControlName="username" class="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="janesmith" aria-describedby="usernameHelp usernameError usernameSuccess" />
+              </div>
+            </div>
+            <div *ngIf="profileForm.get('username')?.errors?.['required']" class="error text-red-500 text-sm" aria-live="polite">
+              Username is required.
+            </div>
+            <div
+              *ngIf="!profileForm.get('username')?.errors?.['required'] && usernameAvailable === false"
+              class="error text-red-500 text-sm"
+              aria-live="polite"
+            >
+              Username is already taken.
+            </div>
+            <div
+              *ngIf="!profileForm.get('username')?.errors?.['required'] && usernameAvailable === true"
+              class="success text-green-500 text-sm"
+              aria-live="polite"
+            >
+              Username is available.
+            </div>
+          </div>
+
+          <div class="sm:col-span-4">
+            <label for="email" class="block text-sm/6 font-medium text-gray-900">Email address</label>
+            <div class="mt-2">
+              <input formControlName="email" type="email" autocomplete="email" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+            </div>
+            <div *ngIf="profileForm.get('email')?.invalid && profileForm.get('email')?.touched" class="error text-red-500 text-sm">
+              <div *ngIf="profileForm.get('email')?.errors?.['required']">
+                Email is required.
+              </div>
+              <div *ngIf="profileForm.get('email')?.errors?.['email']">
+                Please enter a valid email address.
+              </div>
+            </div>
+          </div>
+
+          <div class="sm:col-span-4">
+            <label for="password" class="block text-sm/6 font-medium text-gray-900">Password</label>
+            <div class="mt-2">
+              <div class="flex items-center rounded-md bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600">
+                <input type="password" formControlName="password" autocomplete="password" class="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="your password" />
+              </div>
+            </div>
+            <div class="mt-2">
+              <div class="flex items-center rounded-md bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600">
+                <input type="password" formControlName="re_password" autocomplete="re_password" class="block min-w-0 grow py-1.5 pl-1 pr-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline focus:outline-0 sm:text-sm/6" placeholder="retype your password" />
+              </div>
+            </div>
+            <div *ngIf="passwordsMismatch" class="error text-red-500 text-sm">
+              Passwords do not match.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <div class="mt-6 flex items-center justify-end gap-x-6">
+      <button type="button" (click)="handleCancel()" class="text-sm/6 font-semibold text-gray-900">Cancel</button>
+      <button type="submit" [disabled]="profileForm.invalid || passwordsMismatch" [ngClass]="{'bg-indigo-600 hover:bg-indigo-500 text-white': !(profileForm.invalid || passwordsMismatch), 'bg-gray-300 text-gray-500 cursor-not-allowed': profileForm.invalid || passwordsMismatch}" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Next</button>
+    </div>
+</form>
+</div>
+</div>
