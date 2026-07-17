@@ -30,7 +30,7 @@ func ResetPasswordHandler(c *gin.Context) {
 	}
 
 	var user models.User
-	err = db.DB.Get(&user, "SELECT id, username, password, password_reset_token, password_reset_token_used FROM users WHERE username = ?", username)
+	err = db.DB.Get(&user, "SELECT id, username, password, password_reset_token, password_reset_token_used FROM users WHERE username = $1", username)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
 		return
@@ -49,13 +49,13 @@ func ResetPasswordHandler(c *gin.Context) {
 
 	hashedPassword, err := hash.HashPassword(req.NewPassword)
 
-	_, err = db.DB.Exec("UPDATE users SET password = ? WHERE username = ?", hashedPassword, username)
+	_, err = db.DB.Exec("UPDATE users SET password = $1 WHERE username = $2", hashedPassword, username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not reset password"})
 		return
 	}
 
-	_, err = db.DB.Exec("UPDATE users SET password_reset_token_used = TRUE WHERE username = ?", username)
+	_, err = db.DB.Exec("UPDATE users SET password_reset_token_used = TRUE WHERE username = $1", username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not mark token as used"})
 		return

@@ -20,7 +20,7 @@ type User struct {
 
 func InsertTestUser() {
 	var count int
-	err := db.DB.Get(&count, "SELECT COUNT(*) FROM users WHERE username = ?", "user")
+	err := db.DB.Get(&count, "SELECT COUNT(*) FROM users WHERE username = $1", "user")
 	if err != nil {
 		log.Fatalf("Error checking for existing user: %v", err)
 	}
@@ -31,7 +31,7 @@ func InsertTestUser() {
 			log.Fatalf("Error hashing password: %v", err)
 		}
 
-		_, err = db.DB.Exec(`INSERT INTO users (username, password) VALUES (?, ?)`, "user", hashedPassword)
+		_, err = db.DB.Exec(`INSERT INTO users (username, password) VALUES ($1, $2)`, "user", hashedPassword)
 		if err != nil {
 			log.Fatalf("Error inserting test user: %v", err)
 		}
@@ -43,7 +43,7 @@ func InsertTestUser() {
 
 func InsertTestUserEmail() {
 	var userID int
-	err := db.DB.Get(&userID, "SELECT id FROM users WHERE username = ?", "user")
+	err := db.DB.Get(&userID, "SELECT id FROM users WHERE username = $1", "user")
 	if err != nil {
 		log.Fatalf("Error fetching user ID: %v", err)
 	}
@@ -52,14 +52,14 @@ func InsertTestUserEmail() {
 	for _, email := range emails {
 		// Check if the email already exists
 		var count int
-		err := db.DB.Get(&count, "SELECT COUNT(*) FROM emails WHERE email = ?", email)
+		err := db.DB.Get(&count, "SELECT COUNT(*) FROM emails WHERE email = $1", email)
 		if err != nil {
 			log.Fatalf("Error checking email existence: %v", err)
 		}
 
 		// If the email doesn't exist, insert it
 		if count == 0 {
-			_, err := db.DB.Exec(`INSERT INTO emails (user_id, email) VALUES (?, ?)`, userID, email)
+			_, err := db.DB.Exec(`INSERT INTO emails (user_id, email) VALUES ($1, $2)`, userID, email)
 			if err != nil {
 				log.Fatalf("Error inserting email for user: %v", err)
 			}
@@ -71,7 +71,7 @@ func InsertTestUserEmail() {
 }
 
 func (u *User) Save(tx *sql.Tx) error {
-	query := `INSERT INTO users (username, password) VALUES (?, ?)`
+	query := `INSERT INTO users (username, password) VALUES ($1, $2)`
 
 	result, err := tx.Exec(query, u.Username, u.Password)
 	if err != nil {

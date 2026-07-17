@@ -7,12 +7,13 @@ import (
 func CreateTables() {
 	CreateUserTable()
 	CreateEmailsTable()
+	CreateCustomerTable()
 	log.Println("All tables have been created or already exist.")
 }
 
 func CreateUserTable() {
 	_, err := DB.Exec(`CREATE TABLE IF NOT EXISTS users (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 		username TEXT NOT NULL UNIQUE,
 		password TEXT NOT NULL,
 		password_reset_token TEXT,
@@ -26,7 +27,7 @@ func CreateUserTable() {
 
 func CreateEmailsTable() {
 	_, err := DB.Exec(`CREATE TABLE IF NOT EXISTS emails (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 		user_id INTEGER NOT NULL,
 		email TEXT NOT NULL UNIQUE,
 		verified BOOLEAN DEFAULT FALSE,
@@ -37,4 +38,25 @@ func CreateEmailsTable() {
 		log.Fatal(err)
 	}
 	log.Println("Emails table created or already exists.")
+}
+
+func CreateCustomerTable() {
+	_, err := DB.Exec(`CREATE TABLE IF NOT EXISTS customers (
+		id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+		name TEXT NOT NULL,
+		phone TEXT,
+		email TEXT,
+
+		address TEXT,
+
+		customer_type TEXT NOT NULL DEFAULT 'INDIVIDUAL',
+
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Customer table created or already exists.")
 }

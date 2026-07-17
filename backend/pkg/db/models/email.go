@@ -13,14 +13,14 @@ type Email struct {
 }
 
 func (e *Email) Save(tx *sql.Tx) error {
-	query := `INSERT INTO emails (user_id, email) VALUES (?, ?)`
+	query := `INSERT INTO emails (user_id, email) VALUES ($1, $2)`
 
 	_, err := tx.Exec(query, e.UserID, e.Email)
 	return err
 }
 
 func (e *Email) Update(tx *sql.Tx) error {
-	query := `UPDATE emails SET verification_token = ? WHERE email = ?`
+	query := `UPDATE emails SET verification_token = $1 WHERE email = $2`
 	_, err := tx.Exec(query, e.VerificationToken, e.Email)
 	return err
 }

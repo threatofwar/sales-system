@@ -2,18 +2,31 @@ package db
 
 import (
 	"log"
+	"os"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 )
 
 var DB *sqlx.DB
 
 func InitDB() {
+
 	var err error
-	DB, err = sqlx.Connect("sqlite3", "./user.db")
+
+	dsn := os.Getenv("DATABASE_URL")
+
+	DB, err = sqlx.Connect("postgres", dsn)
+
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Database connection failed:", err)
 	}
-	log.Println("Database connected successfully!")
+
+	err = DB.Ping()
+
+	if err != nil {
+		log.Fatal("Database ping failed:", err)
+	}
+
+	log.Println("✅ Connected to Supabase PostgreSQL")
 }

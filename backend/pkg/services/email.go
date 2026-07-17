@@ -9,7 +9,7 @@ import (
 
 func FindEmailByAddress(email string) (models.Email, error) {
 	var emailRecord models.Email
-	err := db.DB.Get(&emailRecord, "SELECT user_id FROM emails WHERE email = ?", email)
+	err := db.DB.Get(&emailRecord, "SELECT user_id FROM emails WHERE email = $1", email)
 	return emailRecord, err
 }
 
@@ -29,8 +29,8 @@ func UpdateEmailVerificationStatus(email string) error {
 func StoreVerificationToken(email string, verificationToken string) error {
 	_, err := db.DB.Exec(`
 		UPDATE emails 
-		SET verification_token = ? 
-		WHERE email = ?`, verificationToken, email)
+		SET verification_token = $1 
+		WHERE email = $1`, verificationToken, email)
 	if err != nil {
 		log.Println("Error storing verification token:", err)
 		return err
@@ -40,7 +40,7 @@ func StoreVerificationToken(email string, verificationToken string) error {
 
 func GetEmailByToken(verificationToken, email string) (*models.Email, error) {
 	var emailRecord models.Email
-	err := db.DB.Get(&emailRecord, `SELECT id, user_id, email, verified, verification_token FROM emails WHERE verification_token = ? AND email = ?`, verificationToken, email)
+	err := db.DB.Get(&emailRecord, `SELECT id, user_id, email, verified, verification_token FROM emails WHERE verification_token = $1 AND email = $2`, verificationToken, email)
 	if err != nil {
 		log.Println("Error retrieving email by token:", err)
 		return nil, err
