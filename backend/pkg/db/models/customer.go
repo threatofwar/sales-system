@@ -9,23 +9,23 @@ import (
 )
 
 type Customer struct {
-	ID           int64           `db:"id" json:"id"`
-	Name         string          `db:"name" json:"name"`
-	Phone        string          `db:"phone" json:"phone"`
-	Address      string          `db:"address" json:"address"`
-	CustomerType string          `db:"customer_type" json:"customer_type"`
-	Emails       []CustomerEmail `db:"emails" json:"emails"`
-	CreatedAt    time.Time       `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time       `db:"updated_at" json:"updated_at"`
+	ID        int64           `db:"id" json:"id"`
+	FirstName string          `db:"first_name" json:"first_name"`
+	LastName  string          `db:"last_name" json:"last_name"`
+	Phone     string          `db:"phone" json:"phone"`
+	Address   string          `db:"address" json:"address"`
+	Emails    []CustomerEmail `json:"emails"`
+
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type CustomerEmail struct {
-	ID         int64  `db:"id" json:"id"`
-	CustomerID int64  `db:"customer_id" json:"customer_id"`
-	Email      string `db:"email" json:"email"`
-	IsPrimary  bool   `db:"is_primary" json:"is_primary"`
-
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID         int64     `db:"id" json:"id"`
+	CustomerID int64     `db:"customer_id" json:"customer_id"`
+	Email      string    `db:"email" json:"email"`
+	IsPrimary  bool      `db:"is_primary" json:"is_primary"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 }
 
 // Save inserts a new customer
@@ -34,10 +34,10 @@ func (c *Customer) Save(tx *sqlx.Tx) error {
 	query := `
 		INSERT INTO customers
 		(
-			name,
+			first_name,
+			last_name,
 			phone,
-			address,
-			customer_type
+			address
 		)
 		VALUES
 		(
@@ -46,15 +46,18 @@ func (c *Customer) Save(tx *sqlx.Tx) error {
 			$3,
 			$4
 		)
-		RETURNING id, created_at, updated_at
+		RETURNING
+			id,
+			created_at,
+			updated_at
 	`
 
 	return tx.QueryRowx(
 		query,
-		c.Name,
+		c.FirstName,
+		c.LastName,
 		c.Phone,
 		c.Address,
-		c.CustomerType,
 	).Scan(
 		&c.ID,
 		&c.CreatedAt,
@@ -66,30 +69,27 @@ func (c *Customer) Save(tx *sqlx.Tx) error {
 func InsertTestCustomer() {
 
 	customer := Customer{
-		Name:         "Ahmad Cookie Shop",
-		Phone:        "0123456789",
-		Address:      "Kuala Lumpur",
-		CustomerType: "RESELLER",
+		FirstName: "Ahmad",
+		LastName:  "Yaacob",
+		Phone:     "0123456789",
+		Address:   "Kuala Lumpur",
 	}
 
 	tx, err := db.DB.Beginx()
-
 	if err != nil {
 		panic(err)
 	}
 
 	err = customer.Save(tx)
-
 	if err != nil {
-
 		tx.Rollback()
 		panic(err)
 	}
 
-	// insert customer email
+	// Primary email
 	email := CustomerEmail{
 		CustomerID: customer.ID,
-		Email:      "ahmad@example.com",
+		Email:      "ahmads@example.com",
 		IsPrimary:  true,
 	}
 
@@ -106,7 +106,9 @@ func InsertTestCustomer() {
 			$2,
 			$3
 		)
-		RETURNING id, created_at
+		RETURNING
+			id,
+			created_at
 	`
 
 	err = tx.QueryRowx(
@@ -120,16 +122,14 @@ func InsertTestCustomer() {
 	)
 
 	if err != nil {
-
 		tx.Rollback()
 		panic(err)
 	}
 
 	err = tx.Commit()
-
 	if err != nil {
 		panic(err)
 	}
 
-	println("Test customer inserted:", customer.Name)
+	println("Test customer inserted:", customer.FirstName, customer.LastName)
 }

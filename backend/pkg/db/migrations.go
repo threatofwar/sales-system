@@ -60,3 +60,31 @@ func CreateCustomerTable() {
 	}
 	log.Println("Customer table created or already exists.")
 }
+
+func CreateCustomerCompanyTable() {
+	_, err := DB.Exec(`
+		CREATE TABLE IF NOT EXISTS customer_companies (
+			id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+			customer_id BIGINT NOT NULL,
+
+			company_name TEXT NOT NULL,
+			registration_no TEXT,
+			email TEXT,
+			phone TEXT,
+			address TEXT,
+
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+			CONSTRAINT customer_companies_customer_id_fkey
+				FOREIGN KEY (customer_id)
+				REFERENCES customers(id)
+				ON DELETE CASCADE
+		)
+	`)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Customer company table created or already exists.")
+}

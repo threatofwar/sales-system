@@ -1,10 +1,12 @@
-CREATE TABLE IF NOT EXISTS customers (
+CREATE TABLE IF NOT EXISTS companies (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
+    name TEXT NOT NULL,
 
-    phone TEXT UNIQUE,
+    registration_no TEXT UNIQUE,
+
+    email TEXT,
+    phone TEXT,
     address TEXT,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

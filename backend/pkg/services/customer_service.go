@@ -23,10 +23,10 @@ func CreateCustomer(customer *models.Customer) error {
 	query := `
 		INSERT INTO customers
 		(
-			name,
+			first_name,
+			last_name,
 			phone,
-			address,
-			customer_type
+			address
 		)
 		VALUES
 		(
@@ -43,10 +43,10 @@ func CreateCustomer(customer *models.Customer) error {
 
 	err = tx.QueryRowx(
 		query,
-		customer.Name,
+		customer.FirstName,
+		customer.LastName,
 		customer.Phone,
 		customer.Address,
-		customer.CustomerType,
 	).Scan(
 		&customer.ID,
 		&customer.CreatedAt,
@@ -101,10 +101,10 @@ func GetCustomers() ([]models.Customer, error) {
 	query := `
 		SELECT
 			id,
-			name,
+			first_name,
+			last_name,
 			phone,
 			address,
-			customer_type,
 			created_at,
 			updated_at
 		FROM customers
@@ -141,10 +141,10 @@ func GetCustomerByID(id int64) (*models.Customer, error) {
 	query := `
 		SELECT
 			id,
-			name,
+			first_name,
+			last_name,
 			phone,
 			address,
-			customer_type,
 			created_at,
 			updated_at
 		FROM customers
@@ -200,20 +200,20 @@ func UpdateCustomer(customer *models.Customer) error {
 	query := `
 		UPDATE customers
 		SET
-			name = $1,
-			phone = $2,
-			address = $3,
-			customer_type = $4,
+			first_name = $1,
+			last_name = $2,
+			phone = $3,
+			address = $4,
 			updated_at = CURRENT_TIMESTAMP
 		WHERE id = $5
 	`
 
 	_, err := db.DB.Exec(
 		query,
-		customer.Name,
+		customer.FirstName,
+		customer.LastName,
 		customer.Phone,
 		customer.Address,
-		customer.CustomerType,
 		customer.ID,
 	)
 

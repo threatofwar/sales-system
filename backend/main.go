@@ -8,6 +8,7 @@ import (
 
 	"go-login-restapi/auth"
 	"go-login-restapi/pkg/db"
+	"go-login-restapi/pkg/db/models"
 	"go-login-restapi/pkg/handlers"
 	"go-login-restapi/pkg/services"
 
@@ -30,9 +31,10 @@ func main() {
 	db.InitDB()
 	db.RunMigrations()
 	// db.CreateTables()
-	// models.InsertTestUser()
-	// models.InsertTestUserEmail()
+	models.InsertTestUser()
+	models.InsertTestUserEmail()
 	// models.InsertTestCustomer()
+	// models.InsertTestCompany()
 
 	// router := gin.Default()
 	router := gin.New()
@@ -131,6 +133,13 @@ func main() {
 	authGroup.POST("/customers", handlers.CreateCustomerHandler)
 	authGroup.PUT("/customers/:id", handlers.UpdateCustomerHandler)
 	authGroup.DELETE("/customers/:id", handlers.DeleteCustomerHandler)
+
+	// company routes protected by auth middleware
+	authGroup.GET("/company", handlers.GetCompaniesHandler)
+	authGroup.GET("/company/:id", handlers.GetCompanyByIDHandler)
+	authGroup.POST("/company", handlers.CreateCompanyHandler)
+	authGroup.PUT("/company/:id", handlers.UpdateCompanyHandler)
+	authGroup.DELETE("/company/:id", handlers.DeleteCompanyHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
