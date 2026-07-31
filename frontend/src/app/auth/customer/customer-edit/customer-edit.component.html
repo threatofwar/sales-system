@@ -5,6 +5,26 @@
       <div class="border-b border-gray-900/10 pb-12">
         <h2 class="text-base/7 font-semibold text-gray-900">Edit Customer</h2>
         <p class="mt-1 text-sm/6 text-gray-600">This information will be displayed publicly so be careful what you share.</p>
+
+        <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+          <div class="sm:col-span-4">
+            <label for="type" class="block text-sm/6 font-medium text-gray-900">
+              Type
+            </label>
+
+            <div class="mt-2">
+              <select
+                id="type"
+                formControlName="type"
+                class="block w-full rounded-md bg-white px-3 py-2 outline outline-1 outline-gray-300 focus:outline-2 focus:outline-indigo-600">
+
+                <option value="PERSON">Person</option>
+                <option value="COMPANY">Company</option>
+
+              </select>
+            </div>
+          </div>
+        </div>
   
         <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
           <div class="sm:col-span-4">
@@ -28,6 +48,19 @@
             </div>
             <div *ngIf="customerForm.get('last_name')?.invalid &&(customerForm.get('last_name')?.dirty || customerForm.get('last_name')?.touched)" class="mt-2 text-sm text-red-600">
                 Last name is required.
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+          <div class="sm:col-span-4">
+            <label for="identification_no" class="block text-sm/6 font-medium text-gray-900">Identification Number</label>
+            <div class="mt-2">
+                
+                <input id="identification_no" type="text" formControlName="identification_no" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" placeholder="John" aria-describedby="identification_noHelp identification_noError identification_noSuccess" />
+            </div>
+            <div *ngIf="customerForm.get('identification_no')?.invalid &&(customerForm.get('identification_no')?.dirty || customerForm.get('identification_no')?.touched)" class="mt-2 text-sm text-red-600">
+                Identification number is required.
             </div>
           </div>
         </div>

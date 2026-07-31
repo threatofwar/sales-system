@@ -8,7 +8,6 @@ import (
 
 	"go-login-restapi/auth"
 	"go-login-restapi/pkg/db"
-	"go-login-restapi/pkg/db/models"
 	"go-login-restapi/pkg/handlers"
 	"go-login-restapi/pkg/services"
 
@@ -29,10 +28,10 @@ func main() {
 
 	// Initialize database
 	db.InitDB()
-	db.RunMigrations()
+	// db.RunMigrations()
 	// db.CreateTables()
-	models.InsertTestUser()
-	models.InsertTestUserEmail()
+	// models.InsertTestUser()
+	// models.InsertTestUserEmail()
 	// models.InsertTestCustomer()
 	// models.InsertTestCompany()
 

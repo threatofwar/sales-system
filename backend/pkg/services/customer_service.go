@@ -1,8 +1,10 @@
 package services
 
 import (
+	"fmt"
 	"go-login-restapi/pkg/db"
 	"go-login-restapi/pkg/db/models"
+	"strings"
 )
 
 func CreateCustomer(customer *models.Customer) error {
@@ -13,18 +15,33 @@ func CreateCustomer(customer *models.Customer) error {
 		return err
 	}
 
+	err = populateDisplayName(customer)
+
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	defer func() {
 		if err != nil {
 			tx.Rollback()
 		}
 	}()
 
-	// Insert customer
 	query := `
 		INSERT INTO customers
 		(
+			type,
+			display_name,
+
 			first_name,
 			last_name,
+
+			company_name,
+
+			identification_no,
+			registration_no,
+
 			phone,
 			address
 		)
@@ -32,8 +49,17 @@ func CreateCustomer(customer *models.Customer) error {
 		(
 			$1,
 			$2,
+
 			$3,
-			$4
+			$4,
+
+			$5,
+
+			$6,
+			$7,
+
+			$8,
+			$9
 		)
 		RETURNING
 			id,
@@ -43,8 +69,18 @@ func CreateCustomer(customer *models.Customer) error {
 
 	err = tx.QueryRowx(
 		query,
+
+		customer.Type,
+		customer.DisplayName,
+
 		customer.FirstName,
 		customer.LastName,
+
+		customer.CompanyName,
+
+		customer.IdentificationNo,
+		customer.RegistrationNo,
+
 		customer.Phone,
 		customer.Address,
 	).Scan(
@@ -54,11 +90,14 @@ func CreateCustomer(customer *models.Customer) error {
 	)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	// Insert customer emails
-	for _, email := range customer.Emails {
+	for i := range customer.Emails {
+
+		customer.Emails[i].CustomerID = customer.ID
 
 		emailQuery := `
 			INSERT INTO customer_emails
@@ -73,20 +112,24 @@ func CreateCustomer(customer *models.Customer) error {
 				$2,
 				$3
 			)
-			RETURNING id, created_at
+			RETURNING
+				id,
+				created_at
 		`
 
 		err = tx.QueryRowx(
 			emailQuery,
-			customer.ID,
-			email.Email,
-			email.IsPrimary,
+
+			customer.Emails[i].CustomerID,
+			customer.Emails[i].Email,
+			customer.Emails[i].IsPrimary,
 		).Scan(
-			&email.ID,
-			&email.CreatedAt,
+			&customer.Emails[i].ID,
+			&customer.Emails[i].CreatedAt,
 		)
 
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
@@ -101,10 +144,20 @@ func GetCustomers() ([]models.Customer, error) {
 	query := `
 		SELECT
 			id,
+			type,
+			display_name,
+
 			first_name,
 			last_name,
+
+			company_name,
+
+			identification_no,
+			registration_no,
+
 			phone,
 			address,
+
 			created_at,
 			updated_at
 		FROM customers
@@ -141,10 +194,20 @@ func GetCustomerByID(id int64) (*models.Customer, error) {
 	query := `
 		SELECT
 			id,
+			type,
+			display_name,
+
 			first_name,
 			last_name,
+
+			company_name,
+
+			identification_no,
+			registration_no,
+
 			phone,
 			address,
+
 			created_at,
 			updated_at
 		FROM customers
@@ -197,23 +260,51 @@ func GetCustomerEmails(customerID int64) ([]models.CustomerEmail, error) {
 
 func UpdateCustomer(customer *models.Customer) error {
 
+	// Automatically populate DisplayName
+	err := populateDisplayName(customer)
+	if err != nil {
+		return err
+	}
+
 	query := `
 		UPDATE customers
 		SET
-			first_name = $1,
-			last_name = $2,
-			phone = $3,
-			address = $4,
+			type = $1,
+			display_name = $2,
+
+			first_name = $3,
+			last_name = $4,
+
+			company_name = $5,
+
+			identification_no = $6,
+			registration_no = $7,
+
+			phone = $8,
+			address = $9,
+
 			updated_at = CURRENT_TIMESTAMP
-		WHERE id = $5
+
+		WHERE id = $10
 	`
 
-	_, err := db.DB.Exec(
+	_, err = db.DB.Exec(
 		query,
+
+		customer.Type,
+		customer.DisplayName,
+
 		customer.FirstName,
 		customer.LastName,
+
+		customer.CompanyName,
+
+		customer.IdentificationNo,
+		customer.RegistrationNo,
+
 		customer.Phone,
 		customer.Address,
+
 		customer.ID,
 	)
 
@@ -227,10 +318,52 @@ func DeleteCustomer(id int64) error {
 		WHERE id = $1
 	`
 
-	_, err := db.DB.Exec(
-		query,
-		id,
-	)
+	result, err := db.DB.Exec(query, id)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("customer not found")
+	}
+
+	return nil
+}
+
+func populateDisplayName(customer *models.Customer) error {
+
+	switch customer.Type {
+
+	case "PERSON":
+
+		if customer.FirstName == nil || customer.LastName == nil {
+			return fmt.Errorf("first name and last name are required")
+		}
+
+		customer.DisplayName = strings.TrimSpace(
+			*customer.FirstName + " " + *customer.LastName,
+		)
+
+	case "COMPANY":
+
+		if customer.CompanyName == nil {
+			return fmt.Errorf("company name is required")
+		}
+
+		customer.DisplayName = strings.TrimSpace(
+			*customer.CompanyName,
+		)
+
+	default:
+		return fmt.Errorf("invalid customer type")
+	}
+
+	return nil
 }

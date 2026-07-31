@@ -15,12 +15,22 @@ import { CustomerService } from "../../../core/auth/customer/customer.service";
 export class CustomerEditComponent implements OnInit {
   private platformId = inject(PLATFORM_ID);
   customerForm = new FormGroup({
+    type: new FormControl("PERSON", {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+
     first_name: new FormControl("", {
       nonNullable: true,
       validators: [Validators.required],
     }),
 
     last_name: new FormControl("", {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    
+    identification_no: new FormControl("", {
       nonNullable: true,
       validators: [Validators.required],
     }),
@@ -107,8 +117,10 @@ customerId = 0;
     this.customerService.getCustomer(id).subscribe({
       next: (customer) => {
         this.customerForm.patchValue({
+          type: customer.type,
           first_name: customer.first_name,
           last_name: customer.last_name,
+          identification_no: customer.identification_no,
           phone: customer.phone,
           address: customer.address,
           email: customer.emails?.find((e) => e.is_primary)?.email ?? "",
@@ -137,8 +149,10 @@ customerId = 0;
     const formData = this.customerForm.getRawValue();
 
     const postData = {
+      type: formData.type,
       first_name: formData.first_name,
       last_name: formData.last_name,
+      identification_no: formData.identification_no,
       phone: formData.phone,
       address: formData.address,
 

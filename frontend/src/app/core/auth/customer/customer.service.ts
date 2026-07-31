@@ -12,8 +12,13 @@ export interface CustomerEmail {
 
 export interface Customer {
   id?: number;
+  type?: string;
+  display_name?: string;
   first_name: string;
   last_name: string;
+  company_name?: string;
+  identification_no?: string;
+  registration_no?: string;
   phone: string;
   address: string;
 

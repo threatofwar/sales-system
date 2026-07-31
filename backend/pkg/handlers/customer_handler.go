@@ -40,9 +40,23 @@ func CreateCustomerHandler(c *gin.Context) {
 		return
 	}
 
+	createdCustomer, err := services.GetCustomerByID(customer.ID)
+
+	if err != nil {
+
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
+
+		return
+	}
+
 	c.JSON(
 		http.StatusCreated,
-		customer,
+		createdCustomer,
 	)
 }
 
@@ -158,9 +172,24 @@ func UpdateCustomerHandler(c *gin.Context) {
 		return
 	}
 
+	// Reload customer from database
+	updatedCustomer, err := services.GetCustomerByID(id)
+
+	if err != nil {
+
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
+
+		return
+	}
+
 	c.JSON(
 		http.StatusOK,
-		customer,
+		updatedCustomer,
 	)
 }
 
@@ -187,6 +216,18 @@ func DeleteCustomerHandler(c *gin.Context) {
 	err = services.DeleteCustomer(id)
 
 	if err != nil {
+
+		if err.Error() == "customer not found" {
+
+			c.JSON(
+				http.StatusNotFound,
+				gin.H{
+					"error": "customer not found",
+				},
+			)
+
+			return
+		}
 
 		c.JSON(
 			http.StatusInternalServerError,

@@ -3,8 +3,6 @@ package models
 import (
 	"time"
 
-	"go-login-restapi/pkg/db"
-
 	"github.com/jmoiron/sqlx"
 )
 
@@ -61,31 +59,31 @@ func (c *Company) Save(tx *sqlx.Tx) error {
 }
 
 // InsertTestCompany creates sample data
-func InsertTestCompany() {
+// func InsertTestCompany() {
 
-	company := Company{
-		Name:           "Test Company",
-		RegistrationNo: "123456789",
-		Email:          "info@testcompany.com",
-		Phone:          "0123456789",
-		Address:        "Kuala Lumpur",
-	}
+// 	company := Company{
+// 		Name:           "Test Company",
+// 		RegistrationNo: "123456789",
+// 		Email:          "info@testcompany.com",
+// 		Phone:          "0123456789",
+// 		Address:        "Kuala Lumpur",
+// 	}
 
-	tx, err := db.DB.Beginx()
-	if err != nil {
-		panic(err)
-	}
+// 	tx, err := db.DB.Beginx()
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	err = company.Save(tx)
-	if err != nil {
-		tx.Rollback()
-		panic(err)
-	}
+// 	err = company.Save(tx)
+// 	if err != nil {
+// 		tx.Rollback()
+// 		panic(err)
+// 	}
 
-	err = tx.Commit()
-	if err != nil {
-		panic(err)
-	}
+// 	err = tx.Commit()
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	println("Test company inserted:", company.Name)
-}
+// 	println("Test company inserted:", company.Name)
+// }

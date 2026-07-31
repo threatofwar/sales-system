@@ -1,79 +1,89 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { FormsModule, FormGroup, FormControl, ReactiveFormsModule, Validators, ValidationErrors, AbstractControl } from '@angular/forms';
+import {
+  FormGroup,
+  FormControl,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms';
 import { AuthService } from '../../../core/auth/auth.service';
 import { CustomerService } from '../../../core/auth/customer/customer.service';
+import { distinctUntilChanged } from 'rxjs';
 
 @Component({
   selector: 'app-customer-create',
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    CommonModule,
-    FormsModule
+    CommonModule
   ],
   templateUrl: './customer-create.component.html',
   styleUrl: './customer-create.component.scss'
 })
 export class CustomerCreateComponent {
-    customerForm = new FormGroup({
-    first_name: new FormControl('', {
+
+  customerForm = new FormGroup({
+
+    type: new FormControl("PERSON", {
       nonNullable: true,
       validators: [Validators.required]
     }),
 
+    first_name: new FormControl('', {
+      nonNullable: true
+    }),
+
     last_name: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required]
+      nonNullable: true
+    }),
+
+    company_name: new FormControl('', {
+      nonNullable: true
+    }),
+
+    identification_no: new FormControl('', {
+      nonNullable: true
+    }),
+
+    registration_no: new FormControl('', {
+      nonNullable: true
     }),
 
     email: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.email]
+      validators: [
+        Validators.required,
+        Validators.email
+      ]
     }),
 
     phone: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [
+        Validators.required
+      ]
     }),
 
     address: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [
+        Validators.required
+      ]
     })
+
   });
 
-  countryCode = '+60';
 
-  phone = '';
+  get isPerson(): boolean {
+    return this.customerForm.get('type')?.value === 'PERSON';
+  }
 
-  countries = [
-    {
-      name: 'Malaysia',
-      code: '+60'
-    },
-    {
-      name: 'Singapore',
-      code: '+65'
-    },
-    {
-      name: 'Indonesia',
-      code: '+62'
-    },
-    {
-      name: 'Thailand',
-      code: '+66'
-    },
-    {
-      name: 'United States',
-      code: '+1'
-    },
-    {
-      name: 'United Kingdom',
-      code: '+44'
-    }
-  ];
+
+  get isCompany(): boolean {
+    return this.customerForm.get('type')?.value === 'COMPANY';
+  }
+
 
   constructor(
     private router: Router,
@@ -81,47 +91,216 @@ export class CustomerCreateComponent {
     private customerService: CustomerService
   ) {}
 
-  logout() {
-    this.authService.logout().subscribe({
-      next: () => console.log('Logout successful'),
-      error: (err) => console.error('Logout failed', err)
-    });
+
+  ngOnInit(): void {
+
+    const typeControl = this.customerForm.get('type');
+
+
+    const updateValidation = (type: string | null) => {
+
+      const firstName = this.customerForm.get('first_name');
+      const lastName = this.customerForm.get('last_name');
+      const identificationNo = this.customerForm.get('identification_no');
+
+      const companyName = this.customerForm.get('company_name');
+      const registrationNo = this.customerForm.get('registration_no');
+
+
+      if (type === "PERSON") {
+
+        // PERSON required fields
+        firstName?.setValidators([
+          Validators.required
+        ]);
+
+        lastName?.setValidators([
+          Validators.required
+        ]);
+
+        identificationNo?.setValidators([
+          Validators.required
+        ]);
+
+
+        // COMPANY not required
+        companyName?.clearValidators();
+        registrationNo?.clearValidators();
+
+
+        // clear unused fields
+        companyName?.setValue("");
+        registrationNo?.setValue("");
+
+      }
+
+
+      if (type === "COMPANY") {
+
+        // COMPANY required fields
+        companyName?.setValidators([
+          Validators.required
+        ]);
+
+        registrationNo?.setValidators([
+          Validators.required
+        ]);
+
+
+        // PERSON not required
+        firstName?.clearValidators();
+        lastName?.clearValidators();
+        identificationNo?.clearValidators();
+
+
+        // clear unused fields
+        firstName?.setValue("");
+        lastName?.setValue("");
+        identificationNo?.setValue("");
+
+      }
+
+
+      firstName?.updateValueAndValidity();
+      lastName?.updateValueAndValidity();
+      identificationNo?.updateValueAndValidity();
+
+      companyName?.updateValueAndValidity();
+      registrationNo?.updateValueAndValidity();
+
+    };
+
+
+    // listen for dropdown change
+    typeControl?.valueChanges
+      .pipe(distinctUntilChanged())
+      .subscribe(type => {
+
+        updateValidation(type);
+
+      });
+
+
+    // initialise default value
+    updateValidation(typeControl?.value);
+
   }
+
+
 
   handleSubmit(): void {
-  if (this.customerForm.invalid) {
-    this.customerForm.markAllAsTouched();
-    return;
+
+    if (this.customerForm.invalid) {
+
+      this.customerForm.markAllAsTouched();
+
+      return;
+    }
+
+
+    const formData = this.customerForm.getRawValue();
+
+
+    const postData = {
+
+      type: formData.type,
+
+
+      first_name: this.isPerson
+        ? formData.first_name
+        : null,
+
+
+      last_name: this.isPerson
+        ? formData.last_name
+        : null,
+
+
+      identification_no: this.isPerson
+        ? formData.identification_no
+        : null,
+
+
+      company_name: this.isCompany
+        ? formData.company_name
+        : null,
+
+
+      registration_no: this.isCompany
+        ? formData.registration_no
+        : null,
+
+
+      phone: formData.phone,
+
+
+      address: formData.address,
+
+
+      emails: [
+        {
+          email: formData.email,
+          is_primary: true
+        }
+      ]
+
+    };
+
+
+    console.log("Create Customer Payload:", postData);
+
+
+    this.customerService.createCustomer(postData)
+      .subscribe({
+
+        next: (customer) => {
+
+          console.log(
+            "Customer created successfully:",
+            customer
+          );
+
+          this.router.navigate(['/customer']);
+
+        },
+
+
+        error: (err) => {
+
+          console.error(
+            "Failed to create customer:",
+            err
+          );
+
+        }
+
+      });
+
   }
 
-  const formData = this.customerForm.getRawValue();
 
-const postData = {
-  first_name: formData.first_name,
-  last_name: formData.last_name,
-  phone: formData.phone,
-  address: formData.address,
 
-  emails: [
-    {
-      email: formData.email,
-      is_primary: true
-    }
-  ]
-};
+  logout() {
 
-  this.customerService.createCustomer(postData).subscribe({
-      next: (customer) => {
-        console.log('Customer created successfully:', customer);
-        this.router.navigate(['/customer']);
-      },
-      error: (err) => {
-        console.error('Failed to create customer:', err);
-      }
-    });
-}
+    this.authService.logout()
+      .subscribe({
+
+        next: () =>
+          console.log('Logout successful'),
+
+        error: (err) =>
+          console.error('Logout failed', err)
+
+      });
+
+  }
+
+
 
   handleCancel() {
+
     this.router.navigate(['/customer']);
+
   }
+
 }
