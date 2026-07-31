@@ -182,7 +182,7 @@ export class CustomerCreateComponent {
 
 
     // initialise default value
-    updateValidation(typeControl?.value);
+    updateValidation(typeControl?.value ?? null);
 
   }
 

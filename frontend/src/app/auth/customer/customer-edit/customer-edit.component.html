@@ -25,46 +25,77 @@
             </div>
           </div>
         </div>
-  
-        <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-          <div class="sm:col-span-4">
-            <label for="first_name" class="block text-sm/6 font-medium text-gray-900">First Name</label>
-            <div class="mt-2">
-                
-                <input id="first_name" type="text" formControlName="first_name" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" placeholder="John" aria-describedby="first_nameHelp first_nameError first_nameSuccess" />
-            </div>
-            <div *ngIf="customerForm.get('first_name')?.invalid &&(customerForm.get('first_name')?.dirty || customerForm.get('first_name')?.touched)" class="mt-2 text-sm text-red-600">
-                First name is required.
+
+        @if (isPerson) {
+          <!-- Person fields -->
+          <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+            <div class="sm:col-span-4">
+              <label for="first_name" class="block text-sm/6 font-medium text-gray-900">First Name</label>
+              <div class="mt-2">
+                  
+                  <input id="first_name" type="text" formControlName="first_name" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" placeholder="John" aria-describedby="first_nameHelp first_nameError first_nameSuccess" />
+              </div>
+              <div *ngIf="customerForm.get('first_name')?.invalid &&(customerForm.get('first_name')?.dirty || customerForm.get('first_name')?.touched)" class="mt-2 text-sm text-red-600">
+                  First name is required.
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-          <div class="sm:col-span-4">
-            <label for="last_name" class="block text-sm/6 font-medium text-gray-900">Last Name</label>
-            <div class="mt-2">
-                
-                <input id="last_name" type="text" formControlName="last_name" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" placeholder="John" aria-describedby="last_nameHelp last_nameError last_nameSuccess" />
-            </div>
-            <div *ngIf="customerForm.get('last_name')?.invalid &&(customerForm.get('last_name')?.dirty || customerForm.get('last_name')?.touched)" class="mt-2 text-sm text-red-600">
-                Last name is required.
+          <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+            <div class="sm:col-span-4">
+              <label for="last_name" class="block text-sm/6 font-medium text-gray-900">Last Name</label>
+              <div class="mt-2">
+                  
+                  <input id="last_name" type="text" formControlName="last_name" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" placeholder="John" aria-describedby="last_nameHelp last_nameError last_nameSuccess" />
+              </div>
+              <div *ngIf="customerForm.get('last_name')?.invalid &&(customerForm.get('last_name')?.dirty || customerForm.get('last_name')?.touched)" class="mt-2 text-sm text-red-600">
+                  Last name is required.
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-          <div class="sm:col-span-4">
-            <label for="identification_no" class="block text-sm/6 font-medium text-gray-900">Identification Number</label>
-            <div class="mt-2">
-                
-                <input id="identification_no" type="text" formControlName="identification_no" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" placeholder="John" aria-describedby="identification_noHelp identification_noError identification_noSuccess" />
-            </div>
-            <div *ngIf="customerForm.get('identification_no')?.invalid &&(customerForm.get('identification_no')?.dirty || customerForm.get('identification_no')?.touched)" class="mt-2 text-sm text-red-600">
-                Identification number is required.
+          <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+            <div class="sm:col-span-4">
+              <label for="identification_no" class="block text-sm/6 font-medium text-gray-900">Identification Number</label>
+              <div class="mt-2">
+                  
+                  <input id="identification_no" type="text" formControlName="identification_no" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" placeholder="John" aria-describedby="identification_noHelp identification_noError identification_noSuccess" />
+              </div>
+              <div *ngIf="customerForm.get('identification_no')?.invalid &&(customerForm.get('identification_no')?.dirty || customerForm.get('identification_no')?.touched)" class="mt-2 text-sm text-red-600">
+                  Identification number is required.
+              </div>
             </div>
           </div>
-        </div>
+        }
 
+        @if (isCompany) {
+          <!-- Company fields -->
+          <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+            <div class="sm:col-span-4">
+              <label for="company_name" class="block text-sm/6 font-medium text-gray-900">Company Name</label>
+              <div class="mt-2">
+                  
+                  <input id="company_name" type="text" formControlName="company_name" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" placeholder="John" aria-describedby="company_nameHelp company_nameError company_nameSuccess" />
+              </div>
+              <div *ngIf="customerForm.get('company_name')?.invalid &&(customerForm.get('company_name')?.dirty || customerForm.get('company_name')?.touched)" class="mt-2 text-sm text-red-600">
+                  Company name is required.
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+            <div class="sm:col-span-4">
+              <label for="registration_no" class="block text-sm/6 font-medium text-gray-900">Registration Number</label>
+              <div class="mt-2">
+                  
+                  <input id="registration_no" type="text" formControlName="registration_no" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" placeholder="John" aria-describedby="registration_noHelp registration_noError registration_noSuccess" />
+              </div>
+              <div *ngIf="customerForm.get('registration_no')?.invalid &&(customerForm.get('registration_no')?.dirty || customerForm.get('registration_no')?.touched)" class="mt-2 text-sm text-red-600">
+                  Registration number is required.
+              </div>
+            </div>
+          </div>
+        }
         <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
           <div class="sm:col-span-4">
             <label for="email" class="block text-sm/6 font-medium text-gray-900">Email</label>

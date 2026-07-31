@@ -67,28 +67,56 @@ export class AuthService {
     );
   }
 
+  refreshToken(): Observable<any> {
+
+    return this.http.post(
+      `${this.apiUrl}/refresh-token`,
+      {},
+      {
+        withCredentials:true
+      }
+    );
+
+  }
+
   checkAuthentication(): Observable<boolean> {
+
     if (this.isPrerendering()) {
       return of(true);
     }
-    if (this.authenticatedSubject.value !== null) {
-      console.log('cache authentication status: ', this.authenticatedSubject.value);
-      return of(this.authenticatedSubject.value);
-    }
+
 
     console.log('Checking authentication status via API...');
-    return this.http.get<{ authenticated: boolean }>(`${this.apiUrl}/authenticated`, { withCredentials: true }).pipe(
+
+
+    return this.http.get<{ authenticated: boolean }>(
+      `${this.apiUrl}/authenticated`,
+      { withCredentials: true }
+    ).pipe(
+
       map(response => {
-        console.log('Authentication check response:', response);
+
         this.authenticatedSubject.next(response.authenticated);
+
         return response.authenticated;
+
       }),
+
       catchError(error => {
-        console.error('Authentication check failed:', error);
+
+        console.error(
+          'Authentication check failed:',
+          error
+        );
+
         this.authenticatedSubject.next(false);
+
         return of(false);
+
       })
+
     );
+
   }
 
   clearAuthenticationStatus() {

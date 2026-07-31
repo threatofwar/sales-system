@@ -14,11 +14,11 @@ export interface Customer {
   id?: number;
   type?: string;
   display_name?: string;
-  first_name: string;
-  last_name: string;
-  company_name?: string;
-  identification_no?: string;
-  registration_no?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  company_name?: string | null;
+  identification_no?: string | null;
+  registration_no?: string | null;
   phone: string;
   address: string;
 
