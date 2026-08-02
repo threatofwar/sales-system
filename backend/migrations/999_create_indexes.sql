@@ -11,9 +11,6 @@ ON customers(first_name);
 CREATE INDEX idx_customers_last_name
 ON customers(last_name);
 
-CREATE INDEX idx_customers_display_name
-ON customers(display_name);
-
 CREATE INDEX idx_customers_company_name
 ON customers(company_name);
 
@@ -45,19 +42,38 @@ ON customer_emails(customer_id)
 WHERE is_primary = TRUE;
 
 
+-- ==========================================
+-- Categories Indexes
+-- ==========================================
+
+-- Primary Key index created automatically.
+-- UNIQUE(name) creates an index automatically.
+
+
 
 -- ==========================================
 -- Products Indexes
 -- ==========================================
 
-CREATE INDEX idx_products_sku
-ON products(sku);
+CREATE INDEX idx_products_category_id
+ON products(category_id);
 
 CREATE INDEX idx_products_name
 ON products(name);
 
-CREATE INDEX idx_products_is_active
-ON products(is_active);
+
+-- ==========================================
+-- Stock Transactions Indexes
+-- ==========================================
+CREATE INDEX idx_stock_transactions_product_id
+ON stock_transactions(product_id);
+
+
+CREATE INDEX idx_stock_transactions_created_at
+ON stock_transactions(created_at);
+
+CREATE INDEX idx_stock_transactions_reference_type_id
+ON stock_transactions(reference_type, reference_id);
 
 
 

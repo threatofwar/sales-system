@@ -8,6 +8,9 @@ import { DashboardComponent } from './auth/dashboard/dashboard.component';
 import { CustomerComponent } from './auth/customer/customer.component';
 import { CustomerCreateComponent } from './auth/customer/customer-create/customer-create.component';
 import { CustomerEditComponent } from './auth/customer/customer-edit/customer-edit.component';
+import { CategoryComponent } from './auth/category/category.component';
+import { CategoryCreateComponent } from './auth/category/category-create/category-create.component';
+import { CategoryEditComponent } from './auth/category/category-edit/category-edit.component';
 import { CompanyComponent } from './auth/company/company.component';
 import { LayoutComponent } from './auth/layout/layout.component';
 import { authGuard } from './core/auth/auth.guard';
@@ -53,6 +56,22 @@ export const routes: Routes = [
             path: 'company',
             component: CompanyComponent
         },
+
+        // Category Management Routes
+        {
+            path: 'category',
+            component: CategoryComponent
+        },
+
+        {
+            path: 'category/new',
+            component: CategoryCreateComponent
+        },
+
+        {
+            path: 'category/:id/edit',
+            component: CategoryEditComponent
+        }
 
         ]
     },

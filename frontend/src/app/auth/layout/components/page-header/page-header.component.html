@@ -1,0 +1,23 @@
+<div class="flex items-center justify-between">
+
+    <div>
+
+        <h1 class="text-2xl font-bold text-gray-900">
+            {{ title }}
+        </h1>
+
+        <p class="mt-1 text-sm text-gray-500">
+            {{ description }}
+        </p>
+
+    </div>
+
+
+    <a
+        [routerLink]="addRoute"
+        class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+    >
+        + {{ addText }}
+    </a>
+
+</div>

@@ -24,6 +24,10 @@ export class NavbarComponent {
       route: '/customer'
     },
     {
+      name: 'Categories',
+      route: '/category'
+    },
+    {
       name: 'Companies',
       route: '/company'
     },

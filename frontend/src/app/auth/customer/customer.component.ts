@@ -1,17 +1,14 @@
 import { Component, OnInit, inject, PLATFORM_ID } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { CommonModule, isPlatformBrowser, isPlatformServer } from '@angular/common';
-
-
-import {
-  Customer,
-  CustomerService
-} from '../../core/auth/customer/customer.service';
+import { Customer, CustomerService } from '../../core/auth/customer/customer.service';
+import { PageHeaderComponent } from '../../auth/layout/components/page-header/page-header.component';
+import { SearchBoxComponent } from '../../auth/layout/components/search-box/search-box.component';
 
 @Component({
   selector: 'app-customer',
   standalone: true,
-  imports: [RouterLink, CommonModule],
+  imports: [RouterLink, CommonModule, PageHeaderComponent, SearchBoxComponent],
   templateUrl: './customer.component.html',
   styleUrl: './customer.component.scss'
 })
