@@ -147,6 +147,13 @@ func main() {
 	authGroup.PUT("/category/:id", handlers.UpdateCategoryHandler)
 	authGroup.DELETE("/category/:id", handlers.DeleteCategoryHandler)
 
+	// product routes protected by auth middleware
+	authGroup.GET("/product", handlers.GetProductsHandler)
+	authGroup.GET("/product/:id", handlers.GetProductByIDHandler)
+	authGroup.POST("/product", handlers.CreateProductHandler)
+	authGroup.PUT("/product/:id", handlers.UpdateProductHandler)
+	authGroup.DELETE("/product/:id", handlers.DeleteProductHandler)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

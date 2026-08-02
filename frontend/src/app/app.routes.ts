@@ -15,6 +15,9 @@ import { CompanyComponent } from './auth/company/company.component';
 import { LayoutComponent } from './auth/layout/layout.component';
 import { authGuard } from './core/auth/auth.guard';
 import { publicGuard } from './core/auth/public.guard';
+import { ProductComponent } from './auth/product/product.component';
+import { ProductCreateComponent } from './auth/product/product-create/product-create.component';
+import { ProductEditComponent } from './auth/product/product-edit/product-edit.component';
 
 export const routes: Routes = [
     // Public Routes
@@ -71,7 +74,23 @@ export const routes: Routes = [
         {
             path: 'category/:id/edit',
             component: CategoryEditComponent
-        }
+        },
+
+        // Product Management Routes
+        {
+            path: 'product',
+            component: ProductComponent
+        },
+
+        {
+            path: 'product/new',
+            component: ProductCreateComponent
+        },
+
+        {
+            path: 'product/:id/edit',
+            component: ProductEditComponent
+        },
 
         ]
     },
