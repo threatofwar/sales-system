@@ -18,6 +18,9 @@ import { publicGuard } from './core/auth/public.guard';
 import { ProductComponent } from './auth/product/product.component';
 import { ProductCreateComponent } from './auth/product/product-create/product-create.component';
 import { ProductEditComponent } from './auth/product/product-edit/product-edit.component';
+import { StockTransactionComponent } from './auth/stock-transaction/stock-transaction.component';
+import { InvoiceComponent } from './auth/invoice/invoice.component'
+import { InvoiceCreateComponent } from './auth/invoice/invoice-create/invoice-create.component';
 
 export const routes: Routes = [
     // Public Routes
@@ -90,6 +93,23 @@ export const routes: Routes = [
         {
             path: 'product/:id/edit',
             component: ProductEditComponent
+        },
+
+        // Stock-Transaction Management Routes
+        {
+            path: 'stock-transaction',
+            component: StockTransactionComponent
+        },
+
+        // Invoice Management Routes
+        {
+            path: 'invoice',
+            component: InvoiceComponent
+        },
+
+        {
+            path: 'invoice/new',
+            component: InvoiceCreateComponent
         },
 
         ]

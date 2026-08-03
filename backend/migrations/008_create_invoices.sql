@@ -1,3 +1,7 @@
+-- ==========================================
+-- Invoices
+-- ==========================================
+
 CREATE TABLE invoices (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
@@ -5,25 +9,50 @@ CREATE TABLE invoices (
 
     invoice_number VARCHAR(50) NOT NULL UNIQUE,
 
-    invoice_date DATE NOT NULL,
+    invoice_date DATE NOT NULL DEFAULT CURRENT_DATE,
 
-    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT'
-        CHECK (
-            status IN (
-                'DRAFT',
-                'UNPAID',
-                'PARTIAL',
-                'PAID',
-                'VOID'
-            )
-        ),
+    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+
+    subtotal NUMERIC(12,2) NOT NULL DEFAULT 0,
+
+    discount NUMERIC(12,2) NOT NULL DEFAULT 0,
+
+    tax NUMERIC(12,2) NOT NULL DEFAULT 0,
+
+    total NUMERIC(12,2) NOT NULL DEFAULT 0,
 
     notes TEXT,
 
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    due_date TIMESTAMPTZ NULL;
 
-    CONSTRAINT fk_invoice_customer
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_invoices_customer
         FOREIGN KEY (customer_id)
         REFERENCES customers(id)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT chk_invoices_status
+        CHECK (
+            status IN (
+                'DRAFT',
+                'ISSUED',
+                'PAID',
+                'CANCELLED'
+            )
+        ),
+
+    CONSTRAINT chk_invoices_subtotal
+        CHECK (subtotal >= 0),
+
+    CONSTRAINT chk_invoices_discount
+        CHECK (discount >= 0),
+
+    CONSTRAINT chk_invoices_tax
+        CHECK (tax >= 0),
+
+    CONSTRAINT chk_invoices_total
+        CHECK (total >= 0)
 );

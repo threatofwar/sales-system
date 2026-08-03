@@ -91,13 +91,6 @@ CREATE INDEX idx_invoices_status
 ON invoices(status);
 
 
--- Useful for reports:
--- Example:
--- "Show unpaid invoices sorted by newest"
-CREATE INDEX idx_invoices_status_date
-ON invoices(status, invoice_date);
-
-
 
 -- ==========================================
 -- Invoice Items Indexes

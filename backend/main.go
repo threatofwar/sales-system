@@ -154,6 +154,18 @@ func main() {
 	authGroup.PUT("/product/:id", handlers.UpdateProductHandler)
 	authGroup.DELETE("/product/:id", handlers.DeleteProductHandler)
 
+	// stock-transaction routes protected by auth middleware
+	authGroup.GET("/stock-transaction", handlers.GetStockTransactions)
+	authGroup.GET("/stock-transaction/:id", handlers.GetStockTransactionByID)
+	authGroup.POST("/stock-transaction", handlers.CreateStockTransaction)
+
+	// invoice routes protected by auth middleware
+	authGroup.GET("/invoice", handlers.GetInvoices)
+	authGroup.GET("/invoice/:id", handlers.GetInvoiceByID)
+	authGroup.POST("/invoice", handlers.CreateInvoice)
+	authGroup.PUT("/invoice/:id", handlers.UpdateInvoice)
+	authGroup.DELETE("/invoice/:id", handlers.DeleteInvoice)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

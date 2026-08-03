@@ -1,0 +1,309 @@
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div>
+
+    <h1 class="text-2xl font-bold text-gray-900">
+      Stock Transaction
+    </h1>
+
+    <p class="mt-1 text-sm text-gray-500">
+      Record stock in, stock out, or inventory adjustments.
+    </p>
+
+  </div>
+
+
+  <!-- Form -->
+  <div class="rounded-lg bg-white p-6 shadow">
+
+    <form
+      [formGroup]="transactionForm"
+      (ngSubmit)="createTransaction()"
+      class="space-y-6"
+    >
+
+
+      <!-- Product -->
+      <div>
+
+        <label
+          for="product_id"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Product
+        </label>
+
+
+        <select
+          id="product_id"
+          formControlName="product_id"
+          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+        >
+
+          <option [ngValue]="null">
+            Select product
+          </option>
+
+
+          @for (product of products; track product.id) {
+
+            <option [ngValue]="product.id">
+
+              {{ product.name }}
+
+              @if (product.sku) {
+                ({{ product.sku }})
+              }
+
+            </option>
+
+          }
+
+        </select>
+
+
+        @if (
+          transactionForm.get('product_id')?.invalid &&
+          transactionForm.get('product_id')?.touched
+        ) {
+
+          <p class="mt-1 text-sm text-red-600">
+            Product is required.
+          </p>
+
+        }
+
+      </div>
+
+
+      <!-- Transaction Type -->
+      <div>
+
+        <label
+          for="transaction_type"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Transaction Type
+        </label>
+
+
+        <select
+          id="transaction_type"
+          formControlName="transaction_type"
+          (change)="onTransactionTypeChange()"
+          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+        >
+
+          <option value="STOCK_IN">
+            Stock In
+          </option>
+
+          <option value="STOCK_OUT">
+            Stock Out
+          </option>
+
+          <option value="ADJUSTMENT">
+            Adjustment
+          </option>
+
+        </select>
+
+
+        @if (transactionType === 'STOCK_IN') {
+
+          <p class="mt-1 text-xs text-gray-500">
+            Add stock to the product. Quantity must be positive.
+          </p>
+
+        }
+
+
+        @if (transactionType === 'STOCK_OUT') {
+
+          <p class="mt-1 text-xs text-gray-500">
+            Remove stock from the product. Quantity must be positive.
+          </p>
+
+        }
+
+
+        @if (transactionType === 'ADJUSTMENT') {
+
+          <p class="mt-1 text-xs text-gray-500">
+            Correct the stock quantity. Use a positive number to
+            increase stock or a negative number to decrease stock.
+          </p>
+
+        }
+
+      </div>
+
+
+      <!-- Quantity -->
+      <div>
+
+        <label
+          for="quantity"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Quantity
+        </label>
+
+
+        <input
+          id="quantity"
+          type="number"
+          formControlName="quantity"
+          [placeholder]="
+            transactionType === 'ADJUSTMENT'
+              ? 'e.g. -5 or 5'
+              : 'Enter quantity'
+          "
+          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+        />
+
+
+        <!-- Required -->
+        @if (
+          quantityControl?.hasError('required') &&
+          quantityControl?.touched
+        ) {
+
+          <p class="mt-1 text-sm text-red-600">
+            Quantity is required.
+          </p>
+
+        }
+
+
+        <!-- Positive quantity for STOCK_IN / STOCK_OUT -->
+        @if (
+          transactionType !== 'ADJUSTMENT' &&
+          quantityControl?.hasError('min') &&
+          quantityControl?.touched
+        ) {
+
+          <p class="mt-1 text-sm text-red-600">
+            Quantity must be at least 1.
+          </p>
+
+        }
+
+
+        <!-- Zero adjustment -->
+        @if (
+          transactionType === 'ADJUSTMENT' &&
+          quantityControl?.hasError('zero') &&
+          quantityControl?.touched
+        ) {
+
+          <p class="mt-1 text-sm text-red-600">
+            Adjustment quantity cannot be zero.
+          </p>
+
+        }
+
+
+        <!-- Invalid number -->
+        @if (
+          quantityControl?.hasError('invalidNumber') &&
+          quantityControl?.touched
+        ) {
+
+          <p class="mt-1 text-sm text-red-600">
+            Please enter a valid number.
+          </p>
+
+        }
+
+      </div>
+
+
+      <!-- Notes -->
+      <div>
+
+        <label
+          for="notes"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Notes
+        </label>
+
+
+        <textarea
+          id="notes"
+          rows="4"
+          formControlName="notes"
+          placeholder="Optional notes..."
+          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+        ></textarea>
+
+
+        @if (
+          transactionForm.get('notes')?.hasError('maxlength') &&
+          transactionForm.get('notes')?.touched
+        ) {
+
+          <p class="mt-1 text-sm text-red-600">
+            Notes cannot exceed 1000 characters.
+          </p>
+
+        }
+
+      </div>
+
+
+      <!-- Error -->
+      @if (errorMessage) {
+
+        <div
+          class="rounded-md bg-red-50 p-4 text-sm text-red-600"
+        >
+          {{ errorMessage }}
+        </div>
+
+      }
+
+
+      <!-- Success -->
+      @if (successMessage) {
+
+        <div
+          class="rounded-md bg-green-50 p-4 text-sm text-green-700"
+        >
+          {{ successMessage }}
+        </div>
+
+      }
+
+
+      <!-- Buttons -->
+      <div class="flex justify-end gap-3">
+
+        <button
+          type="submit"
+          [disabled]="
+            transactionForm.invalid ||
+            submitting ||
+            loadingProducts
+          "
+          class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+
+          @if (submitting) {
+            Saving...
+          } @else {
+            Create Transaction
+          }
+
+        </button>
+
+      </div>
+
+
+    </form>
+
+  </div>
+
+</div>

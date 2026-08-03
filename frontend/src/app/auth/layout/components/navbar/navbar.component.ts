@@ -34,6 +34,14 @@ export class NavbarComponent {
     {
       name: 'Products',
       route: '/product'
+    },
+    {
+      name: 'Stock Transactions',
+      route: '/stock-transaction'
+    },
+    {
+      name: 'Invoices',
+      route: '/invoice'
     }
   ];
 
