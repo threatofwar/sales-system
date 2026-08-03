@@ -22,6 +22,7 @@ export interface Invoice {
   id?: number;
 
   customer_id: number;
+  customer_name?: string;
 
   invoice_number: string;
 
@@ -43,6 +44,25 @@ export interface Invoice {
   items?: InvoiceItem[];
 }
 
+/*
+ * Some backend responses may return:
+ *
+ * {
+ *   invoice: { ... }
+ * }
+ *
+ * while others may return:
+ *
+ * {
+ *   id: 1,
+ *   invoice_number: "...",
+ *   ...
+ * }
+ */
+export interface InvoiceResponse {
+  invoice: Invoice;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -55,9 +75,13 @@ export class InvoiceService {
   ) {}
 
 
-  getInvoices(): Observable<any> {
+  // ============================================================
+  // Get All Invoices
+  // ============================================================
 
-    return this.http.get(
+  getInvoices(): Observable<Invoice[] | { invoices: Invoice[] }> {
+
+    return this.http.get<Invoice[] | { invoices: Invoice[] }>(
       `${this.apiUrl}/auth/invoice`,
       {
         withCredentials: true
@@ -67,9 +91,15 @@ export class InvoiceService {
   }
 
 
-  getInvoice(id: number): Observable<any> {
+  // ============================================================
+  // Get Invoice By ID
+  // ============================================================
 
-    return this.http.get(
+  getInvoice(
+    id: number
+  ): Observable<Invoice | InvoiceResponse> {
+
+    return this.http.get<Invoice | InvoiceResponse>(
       `${this.apiUrl}/auth/invoice/${id}`,
       {
         withCredentials: true
@@ -79,7 +109,13 @@ export class InvoiceService {
   }
 
 
-  createInvoice(invoice: any): Observable<any> {
+  // ============================================================
+  // Create Invoice
+  // ============================================================
+
+  createInvoice(
+    invoice: any
+  ): Observable<any> {
 
     return this.http.post(
       `${this.apiUrl}/auth/invoice`,
@@ -91,6 +127,10 @@ export class InvoiceService {
 
   }
 
+
+  // ============================================================
+  // Update Invoice
+  // ============================================================
 
   updateInvoice(
     id: number,
@@ -108,7 +148,13 @@ export class InvoiceService {
   }
 
 
-  deleteInvoice(id: number): Observable<any> {
+  // ============================================================
+  // Delete Invoice
+  // ============================================================
+
+  deleteInvoice(
+    id: number
+  ): Observable<any> {
 
     return this.http.delete(
       `${this.apiUrl}/auth/invoice/${id}`,

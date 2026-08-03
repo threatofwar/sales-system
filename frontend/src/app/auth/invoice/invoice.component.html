@@ -1,62 +1,44 @@
-<div class="space-y-6">
+<div class="p-6">
 
+  <!-- ====================================================== -->
   <!-- Header -->
-  <div class="flex items-center justify-between">
+  <!-- ====================================================== -->
+
+  <div class="flex items-center justify-between mb-6">
 
     <div>
 
-      <h1 class="text-2xl font-bold text-gray-900">
+      <h1 class="text-2xl font-bold text-gray-800">
         Invoices
       </h1>
 
-      <p class="mt-1 text-sm text-gray-500">
-        Manage all your invoices.
+      <p class="text-sm text-gray-500 mt-1">
+        Manage your customer invoices
       </p>
 
     </div>
 
 
-    <a
-      routerLink="/invoice/new"
-      class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+    <button
+      type="button"
+      (click)="createInvoice()"
+      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
     >
+
       + Create Invoice
-    </a>
+
+    </button>
 
   </div>
 
 
-  <!-- Search -->
-  <div class="rounded-lg bg-white p-4 shadow">
+  <!-- ====================================================== -->
+  <!-- Error message -->
+  <!-- ====================================================== -->
 
-    <div class="max-w-sm">
-
-      <input
-        type="text"
-        placeholder="Search invoice..."
-        class="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-      >
-
-    </div>
-
-  </div>
-
-
-  <!-- Loading -->
   <div
-    *ngIf="loading"
-    class="rounded-lg bg-white p-6 text-center text-sm text-gray-500 shadow"
-  >
-
-    Loading invoices...
-
-  </div>
-
-
-  <!-- Error -->
-  <div
-    *ngIf="!loading && errorMessage"
-    class="rounded-lg bg-red-50 p-4 text-sm text-red-600 shadow"
+    *ngIf="errorMessage"
+    class="mb-4 p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg"
   >
 
     {{ errorMessage }}
@@ -64,52 +46,126 @@
   </div>
 
 
-  <!-- Table -->
+  <!-- ====================================================== -->
+  <!-- Loading -->
+  <!-- ====================================================== -->
+
   <div
-    *ngIf="!loading && !errorMessage"
-    class="overflow-hidden rounded-lg bg-white shadow"
+    *ngIf="loading"
+    class="flex justify-center items-center py-12"
   >
 
-    <div class="overflow-x-auto">
+    <div class="text-gray-500">
 
-      <table class="min-w-full divide-y divide-gray-200">
+      Loading invoices...
+
+    </div>
+
+  </div>
+
+
+  <!-- ====================================================== -->
+  <!-- Invoice table -->
+  <!-- ====================================================== -->
+
+  <div
+    *ngIf="!loading"
+    class="bg-white rounded-lg shadow overflow-hidden"
+  >
+
+    <!-- ==================================================== -->
+    <!-- Empty state -->
+    <!-- ==================================================== -->
+
+    <div
+      *ngIf="invoices.length === 0"
+      class="text-center py-12"
+    >
+
+      <div class="text-gray-400 text-5xl mb-4">
+        📄
+      </div>
+
+      <h2 class="text-lg font-semibold text-gray-700">
+        No invoices found
+      </h2>
+
+      <p class="text-sm text-gray-500 mt-1">
+        Create your first invoice to get started.
+      </p>
+
+      <button
+        type="button"
+        (click)="createInvoice()"
+        class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+      >
+
+        Create Invoice
+
+      </button>
+
+    </div>
+
+
+    <!-- ==================================================== -->
+    <!-- Table -->
+    <!-- ==================================================== -->
+
+    <div
+      *ngIf="invoices.length > 0"
+      class="overflow-x-auto"
+    >
+
+      <table
+        class="min-w-full divide-y divide-gray-200"
+      >
+
+        <!-- ================================================== -->
+        <!-- Header -->
+        <!-- ================================================== -->
 
         <thead class="bg-gray-50">
 
           <tr>
 
             <th
-              class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
               Invoice
             </th>
 
             <th
-              class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
               Customer
             </th>
 
             <th
-              class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              Date
+              Invoice Date
             </th>
 
             <th
-              class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Due Date
+            </th>
+
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
               Status
             </th>
 
             <th
-              class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500"
+              class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
               Total
             </th>
 
             <th
-              class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500"
+              class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
               Actions
             </th>
@@ -119,123 +175,193 @@
         </thead>
 
 
-        <tbody class="divide-y divide-gray-200 bg-white">
+        <!-- ================================================== -->
+        <!-- Body -->
+        <!-- ================================================== -->
 
-          @for (invoice of invoices; track invoice.id) {
+        <tbody
+          class="bg-white divide-y divide-gray-200"
+        >
 
-            <tr class="hover:bg-gray-50">
+          <tr
+            *ngFor="
+              let invoice of invoices;
+              trackBy: trackByInvoiceId
+            "
+            class="hover:bg-gray-50"
+          >
 
+            <!-- ============================================ -->
+            <!-- Invoice number -->
+            <!-- ============================================ -->
 
-              <!-- Invoice Number -->
-              <td
-                class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900"
+            <td class="px-6 py-4 whitespace-nowrap">
+
+              <button
+                type="button"
+                (click)="viewInvoice(invoice)"
+                class="text-blue-600 font-medium hover:text-blue-800 hover:underline"
               >
 
                 {{ invoice.invoice_number }}
 
-              </td>
+              </button>
+
+            </td>
 
 
-              <!-- Customer -->
-              <td
-                class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+            <!-- ============================================ -->
+            <!-- Customer -->
+            <!-- ============================================ -->
+
+            <td class="px-6 py-4 whitespace-nowrap">
+
+              <div class="text-sm text-gray-900">
+
+                {{ invoice.customer_name || ('Customer #' + invoice.customer_id) }}
+
+              </div>
+
+            </td>
+
+
+            <!-- ============================================ -->
+            <!-- Invoice date -->
+            <!-- ============================================ -->
+
+            <td class="px-6 py-4 whitespace-nowrap">
+
+              <div class="text-sm text-gray-700">
+
+                {{ formatDate(invoice.invoice_date) }}
+
+              </div>
+
+            </td>
+
+
+            <!-- ============================================ -->
+            <!-- Due date -->
+            <!-- ============================================ -->
+
+            <td class="px-6 py-4 whitespace-nowrap">
+
+              <div
+                class="text-sm"
+                [class.text-gray-700]="invoice.due_date"
+                [class.text-gray-400]="!invoice.due_date"
               >
 
-                Customer #{{ invoice.customer_id }}
+                {{
+                  invoice.due_date
+                    ? formatDate(invoice.due_date)
+                    : '-'
+                }}
 
-              </td>
+              </div>
+
+            </td>
 
 
-              <!-- Invoice Date -->
-              <td
-                class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+            <!-- ============================================ -->
+            <!-- Status -->
+            <!-- ============================================ -->
+
+            <td class="px-6 py-4 whitespace-nowrap">
+
+              <span
+                class="inline-flex px-2.5 py-1 text-xs font-semibold rounded-full"
+                [ngClass]="getStatusClass(invoice.status)"
               >
 
-                {{ invoice.invoice_date | date:'dd/MM/yyyy' }}
+                {{ invoice.status }}
 
-              </td>
+              </span>
 
-
-              <!-- Status -->
-              <td
-                class="whitespace-nowrap px-6 py-4 text-sm"
-              >
-
-                <span
-                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  [ngClass]="{
-                    'bg-gray-100 text-gray-800':
-                      invoice.status === 'DRAFT',
-
-                    'bg-blue-100 text-blue-800':
-                      invoice.status === 'ISSUED',
-
-                    'bg-green-100 text-green-800':
-                      invoice.status === 'PAID',
-
-                    'bg-red-100 text-red-800':
-                      invoice.status === 'CANCELLED'
-                  }"
-                >
-
-                  {{ invoice.status }}
-
-                </span>
-
-              </td>
+            </td>
 
 
-              <!-- Total -->
-              <td
-                class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium text-gray-900"
-              >
+            <!-- ============================================ -->
+            <!-- Total -->
+            <!-- ============================================ -->
 
-                RM {{ invoice.total ?? '0.00' }}
+            <td class="px-6 py-4 whitespace-nowrap text-right">
 
-              </td>
+              <div class="text-sm font-semibold text-gray-900">
+
+                {{ formatMoney(invoice.total) }}
+
+              </div>
+
+            </td>
 
 
-              <!-- Actions -->
-              <td
-                class="whitespace-nowrap px-6 py-4 text-right text-sm"
-              >
+            <!-- ============================================ -->
+            <!-- Actions -->
+            <!-- ============================================ -->
 
-                <a
-                  [routerLink]="[
-                    '/invoice',
-                    invoice.id,
-                    'edit'
-                  ]"
-                  class="mr-3 font-medium text-indigo-600 hover:text-indigo-900"
-                >
-                  Edit
-                </a>
+            <td class="px-6 py-4 whitespace-nowrap text-right">
 
+              <div class="flex justify-end gap-2">
+
+                <!-- View -->
 
                 <button
                   type="button"
-                  (click)="deleteInvoice(invoice.id!)"
-                  class="font-medium text-red-600 hover:text-red-900"
+                  (click)="viewInvoice(invoice)"
+                  class="px-3 py-1.5 text-sm text-blue-600 border border-blue-200 rounded hover:bg-blue-50"
                 >
-                  Delete
+
+                  View
+
                 </button>
 
-              </td>
 
-            </tr>
+                <!-- Edit -->
 
-          }
+                <button
+                  type="button"
+                  (click)="editInvoice(invoice)"
+                  [disabled]="
+                    invoice.status === 'PAID' ||
+                    invoice.status === 'CANCELLED'
+                  "
+                  class="px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+
+                  Edit
+
+                </button>
 
 
-          <!-- Empty state -->
-          <tr *ngIf="invoices.length === 0">
+                <!-- Delete -->
 
-            <td
-              colspan="6"
-              class="px-6 py-8 text-center text-sm text-gray-500"
-            >
+                <button
+                  type="button"
+                  (click)="deleteInvoice(invoice)"
+                  [disabled]="
+                    deletingInvoiceId === invoice.id ||
+                    invoice.status === 'PAID' ||
+                    invoice.status === 'CANCELLED'
+                  "
+                  class="px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
 
-              No invoices found.
+                  <span
+                    *ngIf="deletingInvoiceId !== invoice.id"
+                  >
+                    Delete
+                  </span>
+
+                  <span
+                    *ngIf="deletingInvoiceId === invoice.id"
+                  >
+                    Deleting...
+                  </span>
+
+                </button>
+
+              </div>
 
             </td>
 

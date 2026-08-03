@@ -21,6 +21,8 @@ import { ProductEditComponent } from './auth/product/product-edit/product-edit.c
 import { StockTransactionComponent } from './auth/stock-transaction/stock-transaction.component';
 import { InvoiceComponent } from './auth/invoice/invoice.component'
 import { InvoiceCreateComponent } from './auth/invoice/invoice-create/invoice-create.component';
+import { InvoiceEditComponent } from './auth/invoice/invoice-edit/invoice-edit.component';
+import { InvoiceDetailComponent } from './auth/invoice/invoice-detail/invoice-detail.component';
 
 export const routes: Routes = [
     // Public Routes
@@ -110,6 +112,16 @@ export const routes: Routes = [
         {
             path: 'invoice/new',
             component: InvoiceCreateComponent
+        },
+
+        {
+            path: 'invoice/:id/edit',
+            component: InvoiceEditComponent
+        },
+
+        {
+            path: 'invoice/:id',
+            component: InvoiceDetailComponent
         },
 
         ]

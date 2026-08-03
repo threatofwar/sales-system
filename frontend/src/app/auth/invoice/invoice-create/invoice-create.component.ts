@@ -124,6 +124,26 @@ export class InvoiceCreateComponent implements OnInit {
         Validators.required
       ],
 
+      /*
+       * Invoice-level discount.
+       */
+      discount: [
+        0,
+        [
+          Validators.min(0)
+        ]
+      ],
+
+      /*
+       * Invoice-level tax.
+       */
+      tax: [
+        0,
+        [
+          Validators.min(0)
+        ]
+      ],
+
       notes: [
         ''
       ]
@@ -156,9 +176,6 @@ export class InvoiceCreateComponent implements OnInit {
 
   /*
    * Load customers.
-   *
-   * Your GET /auth/customer endpoint
-   * currently returns the array directly.
    */
   loadCustomers(): void {
 
@@ -203,13 +220,6 @@ export class InvoiceCreateComponent implements OnInit {
 
   /*
    * Load products.
-   *
-   * Your GET /auth/product endpoint
-   * returns:
-   *
-   * {
-   *   "products": [...]
-   * }
    */
   loadProducts(): void {
 
@@ -352,6 +362,9 @@ export class InvoiceCreateComponent implements OnInit {
 
   /*
    * Calculate invoice subtotal.
+   *
+   * This is the total of all invoice
+   * items after item-level discounts.
    */
   getSubtotal(): number {
 
@@ -372,14 +385,54 @@ export class InvoiceCreateComponent implements OnInit {
 
 
   /*
-   * Current total.
+   * Get invoice-level discount.
+   */
+  getInvoiceDiscount(): number {
+
+    return Number(
+      this.invoiceForm?.get('discount')?.value
+    ) || 0;
+
+  }
+
+
+  /*
+   * Get invoice-level tax.
+   */
+  getTax(): number {
+
+    return Number(
+      this.invoiceForm?.get('tax')?.value
+    ) || 0;
+
+  }
+
+
+  /*
+   * Calculate the final invoice total.
    *
-   * At this stage we don't have
-   * invoice-level tax/discount UI yet.
+   * Total =
+   * Subtotal
+   * - Invoice Discount
+   * + Tax
    */
   getTotal(): number {
 
-    return this.getSubtotal();
+    const subtotal =
+      this.getSubtotal();
+
+    const discount =
+      this.getInvoiceDiscount();
+
+    const tax =
+      this.getTax();
+
+
+    return (
+      subtotal -
+      discount +
+      tax
+    );
 
   }
 
@@ -445,6 +498,63 @@ export class InvoiceCreateComponent implements OnInit {
 
 
     /*
+     * Get invoice-level discount and tax.
+     */
+    const invoiceDiscount =
+      Number(
+        this.invoiceForm.value.discount
+      ) || 0;
+
+    const invoiceTax =
+      Number(
+        this.invoiceForm.value.tax
+      ) || 0;
+
+
+    /*
+     * Validate invoice-level discount.
+     */
+    if (invoiceDiscount < 0) {
+
+      this.errorMessage =
+        'Invoice discount cannot be negative.';
+
+      return;
+
+    }
+
+
+    /*
+     * Validate invoice-level tax.
+     */
+    if (invoiceTax < 0) {
+
+      this.errorMessage =
+        'Tax cannot be negative.';
+
+      return;
+
+    }
+
+
+    /*
+     * Invoice discount cannot exceed
+     * the invoice subtotal.
+     */
+    if (
+      invoiceDiscount >
+      this.getSubtotal()
+    ) {
+
+      this.errorMessage =
+        'Invoice discount cannot exceed the invoice subtotal.';
+
+      return;
+
+    }
+
+
+    /*
      * Validate invoice items.
      */
     for (const item of this.items) {
@@ -497,8 +607,8 @@ export class InvoiceCreateComponent implements OnInit {
 
 
       /*
-       * Prevent discount from being greater
-       * than the line value.
+       * Prevent item discount from being
+       * greater than the line value.
        */
       if (
         Number(item.discount) >
@@ -509,11 +619,28 @@ export class InvoiceCreateComponent implements OnInit {
       ) {
 
         this.errorMessage =
-          'Discount cannot be greater than the item total.';
+          'Discount cannot be greater than the item subtotal.';
 
         return;
 
       }
+
+    }
+
+
+    /*
+     * Calculate final total.
+     */
+    const total =
+      this.getTotal();
+
+
+    if (total < 0) {
+
+      this.errorMessage =
+        'Invoice total cannot be negative.';
+
+      return;
 
     }
 
@@ -524,7 +651,7 @@ export class InvoiceCreateComponent implements OnInit {
 
 
     /*
-     * Build the request body.
+     * Build request body.
      */
     const invoice = {
 
@@ -569,6 +696,20 @@ export class InvoiceCreateComponent implements OnInit {
           .status,
 
 
+      /*
+       * Invoice-level discount.
+       */
+      discount:
+        invoiceDiscount.toFixed(2),
+
+
+      /*
+       * Invoice-level tax.
+       */
+      tax:
+        invoiceTax.toFixed(2),
+
+
       notes:
         this.invoiceForm
           .value
@@ -587,10 +728,12 @@ export class InvoiceCreateComponent implements OnInit {
             Number(item.quantity),
 
           unit_price:
-            Number(item.unit_price).toFixed(2),
+            Number(item.unit_price)
+              .toFixed(2),
 
           discount:
-            Number(item.discount).toFixed(2)
+            Number(item.discount)
+              .toFixed(2)
 
         }))
 
@@ -656,15 +799,7 @@ export class InvoiceCreateComponent implements OnInit {
   /*
    * Convert YYYY-MM-DD into
    * the ISO date format expected
-   * by your Go backend.
-   *
-   * Example:
-   *
-   * 2026-08-03
-   *
-   * becomes:
-   *
-   * 2026-08-03T00:00:00Z
+   * by the Go backend.
    */
   toISOString(
     date: string
