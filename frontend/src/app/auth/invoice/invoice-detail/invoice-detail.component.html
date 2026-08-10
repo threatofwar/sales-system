@@ -1,33 +1,29 @@
-<div class="p-6">
+<div class="space-y-6">
 
-  <!-- ====================================================== -->
   <!-- Header -->
-  <!-- ====================================================== -->
-
   <div
-    class="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between"
+    class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
   >
 
     <div>
 
-      <h1 class="text-2xl font-bold text-gray-800">
+      <h1 class="text-2xl font-bold text-gray-900">
         Invoice Details
       </h1>
 
-      <p class="text-sm text-gray-500 mt-1">
-        View invoice information and invoice items.
+      <p class="mt-1 text-sm text-gray-500">
+        View invoice items, totals and payments.
       </p>
 
     </div>
 
 
-    <div class="flex gap-2">
+    <div class="flex flex-wrap gap-2">
 
       <button
         type="button"
-        class="px-4 py-2 border border-gray-300 rounded-lg
-               text-gray-700 hover:bg-gray-50"
         (click)="backToInvoices()"
+        class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
       >
         Back
       </button>
@@ -35,23 +31,21 @@
 
       <button
         type="button"
-        class="px-4 py-2 border border-gray-300 rounded-lg
-               text-gray-700 hover:bg-gray-50"
         (click)="printInvoice()"
         [disabled]="!invoice"
+        class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
       >
         Print
       </button>
 
 
       <button
+        *ngIf="canEditInvoice()"
         type="button"
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg
-               hover:bg-blue-700 disabled:opacity-50"
         (click)="editInvoice()"
-        [disabled]="!invoice"
+        class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500"
       >
-        Edit
+        Edit Invoice
       </button>
 
     </div>
@@ -59,90 +53,83 @@
   </div>
 
 
-  <!-- ====================================================== -->
   <!-- Loading -->
-  <!-- ====================================================== -->
-
   <div
     *ngIf="loading"
-    class="bg-white rounded-lg shadow p-8 text-center"
+    class="rounded-lg bg-white p-8 text-center text-sm text-gray-500 shadow"
   >
-
-    <p class="text-gray-500">
-      Loading invoice...
-    </p>
-
+    Loading invoice...
   </div>
 
 
-  <!-- ====================================================== -->
-  <!-- Error -->
-  <!-- ====================================================== -->
-
+  <!-- Invoice Error -->
   <div
     *ngIf="!loading && errorMessage"
-    class="bg-red-50 border border-red-200
-           text-red-700 rounded-lg p-4 mb-6"
+    class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow"
   >
-
     {{ errorMessage }}
-
   </div>
 
 
-  <!-- ====================================================== -->
-  <!-- Invoice -->
-  <!-- ====================================================== -->
-
-  <div
+  <ng-container
     *ngIf="!loading && invoice"
-    class="space-y-6"
   >
 
-
-    <!-- ==================================================== -->
-    <!-- Invoice Header -->
-    <!-- ==================================================== -->
-
-    <div
-      class="bg-white rounded-lg shadow p-6"
-    >
+    <!-- Invoice Information -->
+    <div class="rounded-lg bg-white p-6 shadow">
 
       <div
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        class="flex flex-col gap-4 border-b border-gray-200 pb-6 sm:flex-row sm:items-start sm:justify-between"
       >
-
-        <!-- Invoice Number -->
 
         <div>
 
-          <p class="text-sm text-gray-500">
+          <p
+            class="text-xs font-semibold uppercase tracking-wide text-gray-500"
+          >
             Invoice Number
           </p>
 
-          <p class="font-semibold text-gray-800 mt-1">
+          <h2
+            class="mt-1 text-2xl font-bold text-gray-900"
+          >
             {{ invoice.invoice_number }}
-          </p>
+          </h2>
 
         </div>
 
 
-        <!-- Customer -->
+        <span
+          class="inline-flex w-fit rounded-full px-3 py-1 text-sm font-semibold"
+          [ngClass]="getStatusClass(invoice.status)"
+        >
+          {{ invoice.status }}
+        </span>
+
+      </div>
+
+
+      <div
+        class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
+      >
 
         <div>
 
           <p class="text-sm text-gray-500">
-            Customer ID
+            Customer
           </p>
 
-          <p class="font-semibold text-gray-800 mt-1">
-            {{ invoice.customer_id }}
+          <p
+            class="mt-1 font-semibold text-gray-900"
+          >
+            {{
+              invoice.customer_name ||
+              ('Customer #' + invoice.customer_id)
+            }}
           </p>
 
         </div>
 
-
-        <!-- Invoice Date -->
 
         <div>
 
@@ -150,14 +137,14 @@
             Invoice Date
           </p>
 
-          <p class="font-semibold text-gray-800 mt-1">
+          <p
+            class="mt-1 font-semibold text-gray-900"
+          >
             {{ formatDate(invoice.invoice_date) }}
           </p>
 
         </div>
 
-
-        <!-- Due Date -->
 
         <div>
 
@@ -165,60 +152,14 @@
             Due Date
           </p>
 
-          <p class="font-semibold text-gray-800 mt-1">
+          <p
+            class="mt-1 font-semibold text-gray-900"
+          >
             {{ formatDate(invoice.due_date) }}
           </p>
 
         </div>
 
-
-        <!-- Status -->
-
-        <div>
-
-          <p class="text-sm text-gray-500">
-            Status
-          </p>
-
-          <span
-            class="inline-block mt-1 px-3 py-1 rounded-full
-                   text-xs font-semibold"
-            [ngClass]="{
-              'bg-gray-100 text-gray-700':
-                invoice.status === 'DRAFT',
-
-              'bg-blue-100 text-blue-700':
-                invoice.status === 'ISSUED',
-
-              'bg-green-100 text-green-700':
-                invoice.status === 'PAID',
-
-              'bg-red-100 text-red-700':
-                invoice.status === 'CANCELLED'
-            }"
-          >
-            {{ invoice.status }}
-          </span>
-
-        </div>
-
-
-        <!-- Created -->
-
-        <div>
-
-          <p class="text-sm text-gray-500">
-            Created
-          </p>
-
-          <p class="font-semibold text-gray-800 mt-1">
-            {{ formatDate(invoice.created_at) }}
-          </p>
-
-        </div>
-
-
-        <!-- Updated -->
 
         <div>
 
@@ -226,7 +167,9 @@
             Last Updated
           </p>
 
-          <p class="font-semibold text-gray-800 mt-1">
+          <p
+            class="mt-1 font-semibold text-gray-900"
+          >
             {{ formatDate(invoice.updated_at) }}
           </p>
 
@@ -234,40 +177,39 @@
 
       </div>
 
-    </div>
 
+      <div
+        *ngIf="invoice.notes"
+        class="mt-6 border-t border-gray-200 pt-6"
+      >
 
-    <!-- ==================================================== -->
-    <!-- Notes -->
-    <!-- ==================================================== -->
+        <p class="text-sm text-gray-500">
+          Notes
+        </p>
 
-    <div
-      *ngIf="invoice.notes"
-      class="bg-white rounded-lg shadow p-6"
-    >
+        <p
+          class="mt-1 whitespace-pre-line text-gray-700"
+        >
+          {{ invoice.notes }}
+        </p>
 
-      <h2 class="text-lg font-semibold text-gray-800 mb-2">
-        Notes
-      </h2>
-
-      <p class="text-gray-600 whitespace-pre-line">
-        {{ invoice.notes }}
-      </p>
+      </div>
 
     </div>
 
 
-    <!-- ==================================================== -->
     <!-- Invoice Items -->
-    <!-- ==================================================== -->
-
     <div
-      class="bg-white rounded-lg shadow overflow-hidden"
+      class="overflow-hidden rounded-lg bg-white shadow"
     >
 
-      <div class="p-6 border-b border-gray-200">
+      <div
+        class="border-b border-gray-200 p-6"
+      >
 
-        <h2 class="text-lg font-semibold text-gray-800">
+        <h2
+          class="text-lg font-semibold text-gray-900"
+        >
           Invoice Items
         </h2>
 
@@ -275,47 +217,44 @@
 
 
       <div
-        *ngIf="invoice.items?.length"
+        *ngIf="invoice.items?.length; else noInvoiceItems"
         class="overflow-x-auto"
       >
 
-        <table class="w-full text-sm">
+        <table
+          class="min-w-full divide-y divide-gray-200"
+        >
 
           <thead class="bg-gray-50">
 
             <tr>
 
               <th
-                class="px-6 py-3 text-left font-semibold
-                       text-gray-600"
+                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
               >
                 Product
               </th>
 
               <th
-                class="px-6 py-3 text-right font-semibold
-                       text-gray-600"
+                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500"
               >
                 Quantity
               </th>
 
               <th
-                class="px-6 py-3 text-right font-semibold
-                       text-gray-600"
+                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500"
               >
                 Unit Price
               </th>
 
               <th
-                class="px-6 py-3 text-right font-semibold
-                       text-gray-600"
+                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500"
               >
                 Discount
               </th>
 
               <th
-                class="px-6 py-3 text-right font-semibold
-                       text-gray-600"
+                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500"
               >
                 Total
               </th>
@@ -326,60 +265,48 @@
 
 
           <tbody
-            class="divide-y divide-gray-200"
+            class="divide-y divide-gray-200 bg-white"
           >
 
             <tr
               *ngFor="let item of invoice.items"
             >
 
-              <td class="px-6 py-4">
-
-                <div class="font-medium text-gray-800">
-
-                  {{ item.product_name || 'Product #' + item.product_id }}
-
-                </div>
-
+              <td
+                class="px-6 py-4 text-sm font-medium text-gray-900"
+              >
+                {{
+                  item.product_name ||
+                  ('Product #' + item.product_id)
+                }}
               </td>
 
 
               <td
-                class="px-6 py-4 text-right"
+                class="px-6 py-4 text-right text-sm text-gray-700"
               >
-
                 {{ item.quantity }}
-
               </td>
 
 
               <td
-                class="px-6 py-4 text-right"
+                class="px-6 py-4 text-right text-sm text-gray-700"
               >
-
-                RM
-                {{ formatMoney(item.unit_price) }}
-
+                RM {{ formatMoney(item.unit_price) }}
               </td>
 
 
               <td
-                class="px-6 py-4 text-right"
+                class="px-6 py-4 text-right text-sm text-gray-700"
               >
-
-                RM
-                {{ formatMoney(item.discount) }}
-
+                RM {{ formatMoney(item.discount) }}
               </td>
 
 
               <td
-                class="px-6 py-4 text-right font-semibold"
+                class="px-6 py-4 text-right text-sm font-semibold text-gray-900"
               >
-
-                RM
-                {{ formatMoney(getItemTotal(item)) }}
-
+                RM {{ formatMoney(getItemTotal(item)) }}
               </td>
 
             </tr>
@@ -391,38 +318,28 @@
       </div>
 
 
-      <!-- No Items -->
+      <ng-template #noInvoiceItems>
 
+        <div
+          class="p-8 text-center text-sm text-gray-500"
+        >
+          No invoice items found.
+        </div>
+
+      </ng-template>
+
+
+      <!-- Invoice Totals -->
       <div
-        *ngIf="!invoice.items?.length"
-        class="p-8 text-center text-gray-500"
+        class="border-t border-gray-200 p-6"
       >
 
-        No invoice items found.
-
-      </div>
-
-    </div>
-
-
-    <!-- ==================================================== -->
-    <!-- Invoice Summary -->
-    <!-- ==================================================== -->
-
-    <div
-      class="bg-white rounded-lg shadow p-6"
-    >
-
-      <div
-        class="flex justify-end"
-      >
-
-        <div class="w-full md:w-96 space-y-3">
-
-          <!-- Subtotal -->
+        <div
+          class="ml-auto max-w-sm space-y-3"
+        >
 
           <div
-            class="flex justify-between text-gray-600"
+            class="flex justify-between text-sm text-gray-700"
           >
 
             <span>
@@ -436,27 +353,23 @@
           </div>
 
 
-          <!-- Discount -->
-
           <div
-            class="flex justify-between text-gray-600"
+            class="flex justify-between text-sm text-gray-700"
           >
 
             <span>
               Discount
             </span>
 
-            <span>
-              RM {{ formatMoney(invoice.discount) }}
+            <span class="text-red-600">
+              - RM {{ formatMoney(invoice.discount) }}
             </span>
 
           </div>
 
 
-          <!-- Tax -->
-
           <div
-            class="flex justify-between text-gray-600"
+            class="flex justify-between text-sm text-gray-700"
           >
 
             <span>
@@ -470,12 +383,8 @@
           </div>
 
 
-          <!-- Total -->
-
           <div
-            class="border-t border-gray-200 pt-3
-                   flex justify-between
-                   text-lg font-bold text-gray-800"
+            class="flex justify-between border-t border-gray-200 pt-3 text-lg font-bold text-gray-900"
           >
 
             <span>
@@ -494,6 +403,503 @@
 
     </div>
 
-  </div>
+
+    <!-- Payment Summary -->
+    <div
+      class="rounded-lg bg-white p-6 shadow"
+    >
+
+      <div
+        class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+      >
+
+        <div>
+
+          <h2
+            class="text-lg font-semibold text-gray-900"
+          >
+            Payment Summary
+          </h2>
+
+          <p
+            class="mt-1 text-sm text-gray-500"
+          >
+            Payment progress for this invoice.
+          </p>
+
+        </div>
+
+
+        <span
+          *ngIf="paymentSummary"
+          class="inline-flex w-fit rounded-full px-3 py-1 text-sm font-semibold"
+          [ngClass]="getStatusClass(paymentSummary.status)"
+        >
+          {{ paymentSummary.status }}
+        </span>
+
+      </div>
+
+
+      <div
+        *ngIf="loadingPayments"
+        class="py-8 text-center text-sm text-gray-500"
+      >
+        Loading payment summary...
+      </div>
+
+
+      <div
+        *ngIf="paymentErrorMessage"
+        class="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+      >
+        {{ paymentErrorMessage }}
+      </div>
+
+
+      <div
+        *ngIf="!loadingPayments && paymentSummary"
+        class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3"
+      >
+
+        <div
+          class="rounded-lg border border-gray-200 bg-gray-50 p-4"
+        >
+
+          <p class="text-sm text-gray-500">
+            Invoice Total
+          </p>
+
+          <p
+            class="mt-1 text-xl font-bold text-gray-900"
+          >
+            RM {{ formatMoney(getInvoiceTotal()) }}
+          </p>
+
+        </div>
+
+
+        <div
+          class="rounded-lg border border-green-200 bg-green-50 p-4"
+        >
+
+          <p class="text-sm text-green-700">
+            Amount Paid
+          </p>
+
+          <p
+            class="mt-1 text-xl font-bold text-green-800"
+          >
+            RM {{ formatMoney(getAmountPaid()) }}
+          </p>
+
+        </div>
+
+
+        <div
+          class="rounded-lg border border-orange-200 bg-orange-50 p-4"
+        >
+
+          <p class="text-sm text-orange-700">
+            Outstanding Balance
+          </p>
+
+          <p
+            class="mt-1 text-xl font-bold text-orange-800"
+          >
+            RM {{ formatMoney(getOutstandingBalance()) }}
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- Add Payment -->
+    <div
+      *ngIf="canAddPayment()"
+      class="rounded-lg bg-white p-6 shadow"
+    >
+
+      <h2
+        class="text-lg font-semibold text-gray-900"
+      >
+        Add Payment
+      </h2>
+
+      <p class="mt-1 text-sm text-gray-500">
+        Record a payment received from the customer.
+      </p>
+
+
+      <div
+        *ngIf="paymentSuccessMessage"
+        class="mt-4 rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-700"
+      >
+        {{ paymentSuccessMessage }}
+      </div>
+
+
+      <div
+        *ngIf="paymentErrorMessage"
+        class="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+      >
+        {{ paymentErrorMessage }}
+      </div>
+
+
+      <form
+        [formGroup]="paymentForm"
+        (ngSubmit)="createPayment()"
+        class="mt-6 space-y-6"
+      >
+
+        <div
+          class="grid grid-cols-1 gap-6 md:grid-cols-2"
+        >
+
+          <!-- Amount -->
+          <div>
+
+            <div
+              class="flex items-center justify-between"
+            >
+
+              <label
+                class="block text-sm font-medium text-gray-700"
+              >
+                Amount
+              </label>
+
+
+              <button
+                type="button"
+                (click)="useOutstandingBalance()"
+                class="text-xs font-medium text-indigo-600 hover:text-indigo-800"
+              >
+                Use outstanding balance
+              </button>
+
+            </div>
+
+
+            <div class="relative mt-1">
+
+              <span
+                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-gray-500"
+              >
+                RM
+              </span>
+
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                formControlName="amount"
+                class="block w-full rounded-md border border-gray-300 py-2 pl-10 pr-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              >
+
+            </div>
+
+
+            <p
+              *ngIf="
+                paymentForm.get('amount')?.touched &&
+                paymentForm.get('amount')?.invalid
+              "
+              class="mt-1 text-sm text-red-600"
+            >
+              Enter a payment amount greater than zero.
+            </p>
+
+          </div>
+
+
+          <!-- Payment Method -->
+          <div>
+
+            <label
+              class="block text-sm font-medium text-gray-700"
+            >
+              Payment Method
+            </label>
+
+            <select
+              formControlName="payment_method"
+              class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >
+
+              <option
+                *ngFor="let method of paymentMethods"
+                [value]="method.value"
+              >
+                {{ method.label }}
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- Payment Date -->
+          <div>
+
+            <label
+              class="block text-sm font-medium text-gray-700"
+            >
+              Payment Date
+            </label>
+
+            <input
+              type="date"
+              formControlName="payment_date"
+              class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >
+
+          </div>
+
+
+          <!-- Reference Number -->
+          <div>
+
+            <label
+              class="block text-sm font-medium text-gray-700"
+            >
+              Reference Number
+            </label>
+
+            <input
+              type="text"
+              formControlName="reference_no"
+              placeholder="Optional payment reference"
+              class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >
+
+          </div>
+
+
+          <!-- Notes -->
+          <div class="md:col-span-2">
+
+            <label
+              class="block text-sm font-medium text-gray-700"
+            >
+              Notes
+            </label>
+
+            <textarea
+              formControlName="notes"
+              rows="3"
+              placeholder="Optional payment notes"
+              class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            ></textarea>
+
+          </div>
+
+        </div>
+
+
+        <div class="flex justify-end">
+
+          <button
+            type="submit"
+            [disabled]="submittingPayment"
+            class="rounded-md bg-green-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {{
+              submittingPayment
+                ? 'Recording...'
+                : 'Record Payment'
+            }}
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+
+    <!-- Payment closed message -->
+    <div
+      *ngIf="
+        !canAddPayment() &&
+        (
+          invoice.status === 'PAID' ||
+          invoice.status === 'CANCELLED' ||
+          invoice.status === 'DRAFT'
+        )
+      "
+      class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600"
+    >
+
+      <span *ngIf="invoice.status === 'DRAFT'">
+        Change this invoice to ISSUED before recording a payment.
+      </span>
+
+      <span *ngIf="invoice.status === 'PAID'">
+        This invoice has been paid in full.
+      </span>
+
+      <span *ngIf="invoice.status === 'CANCELLED'">
+        Payments cannot be recorded for a cancelled invoice.
+      </span>
+
+    </div>
+
+
+    <!-- Payment History -->
+    <div
+      class="overflow-hidden rounded-lg bg-white shadow"
+    >
+
+      <div
+        class="border-b border-gray-200 p-6"
+      >
+
+        <h2
+          class="text-lg font-semibold text-gray-900"
+        >
+          Payment History
+        </h2>
+
+        <p
+          class="mt-1 text-sm text-gray-500"
+        >
+          Payments recorded against this invoice.
+        </p>
+
+      </div>
+
+
+      <div
+        *ngIf="loadingPayments"
+        class="p-8 text-center text-sm text-gray-500"
+      >
+        Loading payment history...
+      </div>
+
+
+      <div
+        *ngIf="
+          !loadingPayments &&
+          getPayments().length > 0
+        "
+        class="overflow-x-auto"
+      >
+
+        <table
+          class="min-w-full divide-y divide-gray-200"
+        >
+
+          <thead class="bg-gray-50">
+
+            <tr>
+
+              <th
+                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Date
+              </th>
+
+              <th
+                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Method
+              </th>
+
+              <th
+                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Reference
+              </th>
+
+              <th
+                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Notes
+              </th>
+
+              <th
+                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Amount
+              </th>
+
+            </tr>
+
+          </thead>
+
+
+          <tbody
+            class="divide-y divide-gray-200 bg-white"
+          >
+
+            <tr
+              *ngFor="let payment of getPayments()"
+            >
+
+              <td
+                class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+              >
+                {{ formatDate(payment.payment_date) }}
+              </td>
+
+
+              <td
+                class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+              >
+                {{
+                  formatPaymentMethod(
+                    payment.payment_method
+                  )
+                }}
+              </td>
+
+
+              <td
+                class="px-6 py-4 text-sm text-gray-700"
+              >
+                {{ payment.reference_no || '-' }}
+              </td>
+
+
+              <td
+                class="px-6 py-4 text-sm text-gray-700"
+              >
+                {{ payment.notes || '-' }}
+              </td>
+
+
+              <td
+                class="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-green-700"
+              >
+                RM {{ formatMoney(payment.amount) }}
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+
+      <div
+        *ngIf="
+          !loadingPayments &&
+          getPayments().length === 0
+        "
+        class="p-8 text-center text-sm text-gray-500"
+      >
+        No payments recorded.
+      </div>
+
+    </div>
+
+  </ng-container>
 
 </div>

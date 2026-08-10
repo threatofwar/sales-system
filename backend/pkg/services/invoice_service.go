@@ -1258,6 +1258,9 @@ func isValidInvoiceStatus(
 	case "ISSUED":
 		return true
 
+	case "PARTIAL":
+		return true
+
 	case "PAID":
 		return true
 

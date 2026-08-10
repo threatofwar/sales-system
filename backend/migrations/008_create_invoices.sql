@@ -39,6 +39,7 @@ CREATE TABLE invoices (
             status IN (
                 'DRAFT',
                 'ISSUED',
+                'PARTIAL',
                 'PAID',
                 'CANCELLED'
             )

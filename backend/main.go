@@ -166,6 +166,12 @@ func main() {
 	authGroup.PUT("/invoice/:id", handlers.UpdateInvoice)
 	authGroup.DELETE("/invoice/:id", handlers.DeleteInvoice)
 
+	// payment routes protected by auth middleware
+	authGroup.GET("/payment", handlers.GetPayments)
+	authGroup.GET("/payment/:id", handlers.GetPaymentByID)
+	authGroup.POST("/payment", handlers.CreatePayment)
+	authGroup.GET("/payment/invoice/:invoice_id", handlers.GetPaymentsByInvoiceID)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
