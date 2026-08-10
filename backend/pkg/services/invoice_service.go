@@ -819,7 +819,8 @@ func UpdateInvoice(
 	// Don't allow modification of paid/cancelled invoices
 	// --------------------------------------------------------
 
-	if existingInvoice.Status == "PAID" ||
+	if existingInvoice.Status == "PARTIAL" ||
+		existingInvoice.Status == "PAID" ||
 		existingInvoice.Status == "CANCELLED" {
 
 		return nil, fmt.Errorf(
@@ -1187,7 +1188,8 @@ func DeleteInvoice(id int64) error {
 	// Prevent deleting paid/cancelled invoices
 	// --------------------------------------------------------
 
-	if status == "PAID" ||
+	if status == "PARTIAL" ||
+		status == "PAID" ||
 		status == "CANCELLED" {
 
 		return fmt.Errorf(
@@ -1256,12 +1258,6 @@ func isValidInvoiceStatus(
 		return true
 
 	case "ISSUED":
-		return true
-
-	case "PARTIAL":
-		return true
-
-	case "PAID":
 		return true
 
 	case "CANCELLED":

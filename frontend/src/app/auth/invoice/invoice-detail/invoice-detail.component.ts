@@ -571,6 +571,7 @@ export class InvoiceDetailComponent
         ?.toUpperCase();
 
     return (
+      status !== 'PARTIAL' &&
       status !== 'PAID' &&
       status !== 'CANCELLED'
     );
