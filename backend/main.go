@@ -172,6 +172,9 @@ func main() {
 	authGroup.POST("/payment", handlers.CreatePayment)
 	authGroup.GET("/payment/invoice/:invoice_id", handlers.GetPaymentsByInvoiceID)
 
+	// dashboard route protected by auth middleware
+	authGroup.GET("/dashboard", handlers.GetDashboard)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

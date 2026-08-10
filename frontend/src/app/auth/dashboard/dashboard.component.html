@@ -1,7 +1,919 @@
-<h2 class="text-2xl font-bold">
-    Dashboard
-</h2>
+<div class="space-y-6">
 
-<p>
-    Dashboard works!
-</p>
+  <!-- ===================================================== -->
+  <!-- Header -->
+  <!-- ===================================================== -->
+
+  <div
+    class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+  >
+
+    <div>
+
+      <h1
+        class="text-2xl font-bold text-gray-900"
+      >
+        Dashboard
+      </h1>
+
+      <p
+        class="mt-1 text-sm text-gray-500"
+      >
+        Overview of sales, payments, invoices and stock.
+      </p>
+
+    </div>
+
+
+    <button
+      type="button"
+      (click)="loadDashboard()"
+      [disabled]="loading"
+      class="w-fit rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+
+      {{
+        loading
+          ? 'Refreshing...'
+          : 'Refresh'
+      }}
+
+    </button>
+
+  </div>
+
+
+  <!-- ===================================================== -->
+  <!-- Error -->
+  <!-- ===================================================== -->
+
+  <div
+    *ngIf="errorMessage"
+    class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow"
+  >
+
+    <div
+      class="flex items-start justify-between gap-4"
+    >
+
+      <span>
+        {{ errorMessage }}
+      </span>
+
+
+      <button
+        type="button"
+        (click)="errorMessage = ''"
+        class="font-semibold text-red-700 hover:text-red-900"
+      >
+        ×
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- ===================================================== -->
+  <!-- Loading -->
+  <!-- ===================================================== -->
+
+  <div
+    *ngIf="loading && !dashboard"
+    class="rounded-lg bg-white p-10 text-center text-sm text-gray-500 shadow"
+  >
+    Loading dashboard...
+  </div>
+
+
+  <ng-container
+    *ngIf="dashboard"
+  >
+
+    <!-- =================================================== -->
+    <!-- Main Summary Cards -->
+    <!-- =================================================== -->
+
+    <div
+      class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+    >
+
+      <!-- Total Sales -->
+      <div
+        class="rounded-lg bg-white p-6 shadow"
+      >
+
+        <p
+          class="text-sm font-medium text-gray-500"
+        >
+          Total Sales
+        </p>
+
+        <p
+          class="mt-2 text-3xl font-bold text-gray-900"
+        >
+
+          RM
+          {{
+            getTotalSales()
+              | number:'1.2-2'
+          }}
+
+        </p>
+
+        <p
+          class="mt-2 text-xs text-gray-500"
+        >
+          Issued, partial and paid invoices.
+        </p>
+
+      </div>
+
+
+      <!-- Amount Collected -->
+      <div
+        class="rounded-lg bg-white p-6 shadow"
+      >
+
+        <p
+          class="text-sm font-medium text-gray-500"
+        >
+          Amount Collected
+        </p>
+
+        <p
+          class="mt-2 text-3xl font-bold text-green-700"
+        >
+
+          RM
+          {{
+            getAmountCollected()
+              | number:'1.2-2'
+          }}
+
+        </p>
+
+        <p
+          class="mt-2 text-xs text-gray-500"
+        >
+          Total payments received.
+        </p>
+
+      </div>
+
+
+      <!-- Outstanding -->
+      <div
+        class="rounded-lg bg-white p-6 shadow"
+      >
+
+        <p
+          class="text-sm font-medium text-gray-500"
+        >
+          Outstanding Balance
+        </p>
+
+        <p
+          class="mt-2 text-3xl font-bold text-orange-700"
+        >
+
+          RM
+          {{
+            getOutstandingBalance()
+              | number:'1.2-2'
+          }}
+
+        </p>
+
+        <p
+          class="mt-2 text-xs text-gray-500"
+        >
+          Still owed on issued and partial invoices.
+        </p>
+
+      </div>
+
+
+      <!-- Low Stock -->
+      <div
+        class="rounded-lg bg-white p-6 shadow"
+      >
+
+        <p
+          class="text-sm font-medium text-gray-500"
+        >
+          Low Stock Products
+        </p>
+
+        <p
+          class="mt-2 text-3xl font-bold"
+          [ngClass]="
+            getLowStockCount() > 0
+              ? 'text-red-700'
+              : 'text-green-700'
+          "
+        >
+
+          {{
+            getLowStockCount()
+          }}
+
+        </p>
+
+        <button
+          type="button"
+          (click)="viewProducts()"
+          class="mt-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+        >
+          View products →
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- =================================================== -->
+    <!-- Invoice Status Overview -->
+    <!-- =================================================== -->
+
+    <div
+      class="rounded-lg bg-white p-6 shadow"
+    >
+
+      <div
+        class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+      >
+
+        <div>
+
+          <h2
+            class="text-lg font-semibold text-gray-900"
+          >
+            Invoice Status
+          </h2>
+
+          <p
+            class="mt-1 text-sm text-gray-500"
+          >
+            {{ getTotalInvoiceCount() }}
+            invoices in total.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          (click)="viewInvoices()"
+          class="w-fit text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+        >
+          View all invoices →
+        </button>
+
+      </div>
+
+
+      <div
+        class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5"
+      >
+
+        <!-- Draft -->
+        <div
+          class="rounded-lg border border-gray-200 bg-gray-50 p-4"
+        >
+
+          <p
+            class="text-sm text-gray-500"
+          >
+            Draft
+          </p>
+
+          <p
+            class="mt-1 text-2xl font-bold text-gray-800"
+          >
+            {{ getInvoiceCounts().draft }}
+          </p>
+
+        </div>
+
+
+        <!-- Issued -->
+        <div
+          class="rounded-lg border border-blue-200 bg-blue-50 p-4"
+        >
+
+          <p
+            class="text-sm text-blue-700"
+          >
+            Issued
+          </p>
+
+          <p
+            class="mt-1 text-2xl font-bold text-blue-800"
+          >
+            {{ getInvoiceCounts().issued }}
+          </p>
+
+        </div>
+
+
+        <!-- Partial -->
+        <div
+          class="rounded-lg border border-orange-200 bg-orange-50 p-4"
+        >
+
+          <p
+            class="text-sm text-orange-700"
+          >
+            Partial
+          </p>
+
+          <p
+            class="mt-1 text-2xl font-bold text-orange-800"
+          >
+            {{ getInvoiceCounts().partial }}
+          </p>
+
+        </div>
+
+
+        <!-- Paid -->
+        <div
+          class="rounded-lg border border-green-200 bg-green-50 p-4"
+        >
+
+          <p
+            class="text-sm text-green-700"
+          >
+            Paid
+          </p>
+
+          <p
+            class="mt-1 text-2xl font-bold text-green-800"
+          >
+            {{ getInvoiceCounts().paid }}
+          </p>
+
+        </div>
+
+
+        <!-- Cancelled -->
+        <div
+          class="rounded-lg border border-red-200 bg-red-50 p-4"
+        >
+
+          <p
+            class="text-sm text-red-700"
+          >
+            Cancelled
+          </p>
+
+          <p
+            class="mt-1 text-2xl font-bold text-red-800"
+          >
+            {{ getInvoiceCounts().cancelled }}
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- =================================================== -->
+    <!-- Recent Invoices -->
+    <!-- =================================================== -->
+
+    <div
+      class="overflow-hidden rounded-lg bg-white shadow"
+    >
+
+      <div
+        class="flex items-center justify-between border-b border-gray-200 p-6"
+      >
+
+        <div>
+
+          <h2
+            class="text-lg font-semibold text-gray-900"
+          >
+            Recent Invoices
+          </h2>
+
+          <p
+            class="mt-1 text-sm text-gray-500"
+          >
+            Latest invoices created in the system.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          (click)="viewInvoices()"
+          class="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+        >
+          View All
+        </button>
+
+      </div>
+
+
+      <div
+        *ngIf="getRecentInvoices().length > 0"
+        class="overflow-x-auto"
+      >
+
+        <table
+          class="min-w-full divide-y divide-gray-200"
+        >
+
+          <thead
+            class="bg-gray-50"
+          >
+
+            <tr>
+
+              <th
+                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Invoice
+              </th>
+
+              <th
+                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Customer
+              </th>
+
+              <th
+                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Date
+              </th>
+
+              <th
+                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Status
+              </th>
+
+              <th
+                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Total
+              </th>
+
+              <th
+                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Action
+              </th>
+
+            </tr>
+
+          </thead>
+
+
+          <tbody
+            class="divide-y divide-gray-200 bg-white"
+          >
+
+            <tr
+              *ngFor="
+                let invoice of getRecentInvoices()
+              "
+              class="hover:bg-gray-50"
+            >
+
+              <td
+                class="whitespace-nowrap px-6 py-4 text-sm font-semibold text-gray-900"
+              >
+                {{ invoice.invoice_number }}
+              </td>
+
+
+              <td
+                class="px-6 py-4 text-sm text-gray-700"
+              >
+                {{ invoice.customer_name }}
+              </td>
+
+
+              <td
+                class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+              >
+
+                {{
+                  formatDate(
+                    invoice.invoice_date
+                  )
+                }}
+
+              </td>
+
+
+              <td
+                class="whitespace-nowrap px-6 py-4"
+              >
+
+                <span
+                  class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
+                  [ngClass]="
+                    getStatusClass(
+                      invoice.status
+                    )
+                  "
+                >
+                  {{ invoice.status }}
+                </span>
+
+              </td>
+
+
+              <td
+                class="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900"
+              >
+
+                RM
+                {{
+                  formatMoney(
+                    invoice.total
+                  )
+                }}
+
+              </td>
+
+
+              <td
+                class="whitespace-nowrap px-6 py-4 text-right"
+              >
+
+                <button
+                  type="button"
+                  (click)="viewInvoice(invoice.id)"
+                  class="text-sm font-semibold text-indigo-600 hover:text-indigo-900"
+                >
+                  View
+                </button>
+
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+
+      <div
+        *ngIf="getRecentInvoices().length === 0"
+        class="p-8 text-center text-sm text-gray-500"
+      >
+        No invoices found.
+      </div>
+
+    </div>
+
+
+    <!-- =================================================== -->
+    <!-- Recent Payments + Low Stock -->
+    <!-- =================================================== -->
+
+    <div
+      class="grid grid-cols-1 gap-6 xl:grid-cols-3"
+    >
+
+      <!-- Recent Payments -->
+      <div
+        class="overflow-hidden rounded-lg bg-white shadow xl:col-span-2"
+      >
+
+        <div
+          class="border-b border-gray-200 p-6"
+        >
+
+          <h2
+            class="text-lg font-semibold text-gray-900"
+          >
+            Recent Payments
+          </h2>
+
+          <p
+            class="mt-1 text-sm text-gray-500"
+          >
+            Latest payments received.
+          </p>
+
+        </div>
+
+
+        <div
+          *ngIf="getRecentPayments().length > 0"
+          class="overflow-x-auto"
+        >
+
+          <table
+            class="min-w-full divide-y divide-gray-200"
+          >
+
+            <thead
+              class="bg-gray-50"
+            >
+
+              <tr>
+
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500"
+                >
+                  Invoice
+                </th>
+
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500"
+                >
+                  Customer
+                </th>
+
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500"
+                >
+                  Method
+                </th>
+
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500"
+                >
+                  Date
+                </th>
+
+                <th
+                  class="px-6 py-3 text-right text-xs font-semibold uppercase text-gray-500"
+                >
+                  Amount
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody
+              class="divide-y divide-gray-200 bg-white"
+            >
+
+              <tr
+                *ngFor="
+                  let payment of getRecentPayments()
+                "
+                class="cursor-pointer hover:bg-gray-50"
+                (click)="viewInvoice(payment.invoice_id)"
+              >
+
+                <td
+                  class="whitespace-nowrap px-6 py-4 text-sm font-semibold text-indigo-600"
+                >
+                  {{ payment.invoice_number }}
+                </td>
+
+
+                <td
+                  class="px-6 py-4 text-sm text-gray-700"
+                >
+                  {{ payment.customer_name }}
+                </td>
+
+
+                <td
+                  class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+                >
+
+                  {{
+                    formatPaymentMethod(
+                      payment.payment_method
+                    )
+                  }}
+
+                </td>
+
+
+                <td
+                  class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+                >
+
+                  {{
+                    formatDate(
+                      payment.payment_date
+                    )
+                  }}
+
+                </td>
+
+
+                <td
+                  class="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-green-700"
+                >
+
+                  RM
+                  {{
+                    formatMoney(
+                      payment.amount
+                    )
+                  }}
+
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+
+        <div
+          *ngIf="getRecentPayments().length === 0"
+          class="p-8 text-center text-sm text-gray-500"
+        >
+          No payments found.
+        </div>
+
+      </div>
+
+
+      <!-- Low Stock -->
+      <div
+        class="overflow-hidden rounded-lg bg-white shadow"
+      >
+
+        <div
+          class="flex items-center justify-between border-b border-gray-200 p-6"
+        >
+
+          <div>
+
+            <h2
+              class="text-lg font-semibold text-gray-900"
+            >
+              Low Stock
+            </h2>
+
+            <p
+              class="mt-1 text-sm text-gray-500"
+            >
+              Products with 10 units or fewer.
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            (click)="viewProducts()"
+            class="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+          >
+            View
+          </button>
+
+        </div>
+
+
+        <div
+          *ngIf="
+            getLowStockProducts().length > 0
+          "
+          class="divide-y divide-gray-200"
+        >
+
+          <div
+            *ngFor="
+              let product of getLowStockProducts()
+            "
+            class="flex items-center justify-between gap-4 p-5"
+          >
+
+            <div
+              class="min-w-0"
+            >
+
+              <p
+                class="truncate text-sm font-semibold text-gray-900"
+              >
+                {{ product.name }}
+              </p>
+
+              <p
+                class="mt-1 text-xs text-gray-500"
+              >
+
+                SKU:
+                {{
+                  product.sku ||
+                  '-'
+                }}
+
+              </p>
+
+            </div>
+
+
+            <div
+              class="shrink-0 text-right"
+            >
+
+              <p
+                class="text-lg font-bold"
+                [ngClass]="
+                  product.stock_quantity <= 0
+                    ? 'text-red-700'
+                    : 'text-orange-700'
+                "
+              >
+                {{ product.stock_quantity }}
+              </p>
+
+              <p
+                class="text-xs text-gray-500"
+              >
+                remaining
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div
+          *ngIf="
+            getLowStockProducts().length === 0
+          "
+          class="p-8 text-center text-sm text-green-700"
+        >
+          Stock levels look healthy.
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- =================================================== -->
+    <!-- Quick Links -->
+    <!-- =================================================== -->
+
+    <div
+      class="rounded-lg bg-white p-6 shadow"
+    >
+
+      <h2
+        class="text-lg font-semibold text-gray-900"
+      >
+        Quick Actions
+      </h2>
+
+
+      <div
+        class="mt-4 flex flex-wrap gap-3"
+      >
+
+        <button
+          type="button"
+          (click)="viewInvoices()"
+          class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500"
+        >
+          Invoices
+        </button>
+
+
+        <button
+          type="button"
+          (click)="viewProducts()"
+          class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+        >
+          Products
+        </button>
+
+
+        <button
+          type="button"
+          (click)="viewStockTransactions()"
+          class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+        >
+          Stock Transactions
+        </button>
+
+      </div>
+
+    </div>
+
+  </ng-container>
+
+</div>
