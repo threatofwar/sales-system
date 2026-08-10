@@ -1,0 +1,137 @@
+// ============================================================
+// Invoice Details
+// ============================================================
+
+:host {
+  display: block;
+}
+
+
+// ============================================================
+// Print / PDF Styling
+// ============================================================
+
+@media print {
+
+  // ----------------------------------------------------------
+  // Page configuration
+  // ----------------------------------------------------------
+
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+
+  // ----------------------------------------------------------
+  // Basic page styling
+  // ----------------------------------------------------------
+
+  :host {
+    display: block;
+    background: white;
+    color: black;
+  }
+
+
+  // ----------------------------------------------------------
+  // Hide controls that should not appear in the PDF
+  // ----------------------------------------------------------
+
+  .no-print {
+    display: none !important;
+  }
+
+
+  // ----------------------------------------------------------
+  // Remove unnecessary browser/application spacing
+  // ----------------------------------------------------------
+
+  .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 16px;
+  }
+
+
+  // ----------------------------------------------------------
+  // Remove shadows from Tailwind cards
+  // ----------------------------------------------------------
+
+  .shadow,
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+
+
+  // ----------------------------------------------------------
+  // Keep sections together where possible
+  // ----------------------------------------------------------
+
+  .rounded-lg {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+
+  // ----------------------------------------------------------
+  // Improve tables for printing
+  // ----------------------------------------------------------
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  th,
+  td {
+    border-bottom: 1px solid #d1d5db;
+  }
+
+
+  // ----------------------------------------------------------
+  // Prevent URLs from being printed after links
+  // ----------------------------------------------------------
+
+  a[href]::after {
+    content: none !important;
+  }
+
+
+  // ----------------------------------------------------------
+  // Make backgrounds printable without depending heavily
+  // on browser background-graphics settings.
+  // ----------------------------------------------------------
+
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+
+  // ----------------------------------------------------------
+  // Avoid horizontal clipping
+  // ----------------------------------------------------------
+
+  .overflow-x-auto {
+    overflow: visible !important;
+  }
+
+
+  // ----------------------------------------------------------
+  // Make text slightly more compact on A4
+  // ----------------------------------------------------------
+
+  body {
+    font-size: 12px;
+  }
+}

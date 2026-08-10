@@ -34,7 +34,6 @@ import {
   PaymentService
 } from '../../../core/auth/payment/payment.service';
 
-
 @Component({
   selector: 'app-invoice-detail',
   standalone: true,
@@ -68,12 +67,15 @@ export class InvoiceDetailComponent
 
   submittingPayment = false;
 
+  cancellingInvoice = false;
+
   errorMessage = '';
 
   paymentErrorMessage = '';
 
   paymentSuccessMessage = '';
 
+  actionSuccessMessage = '';
 
   paymentMethods: {
     value: PaymentMethod;
@@ -107,7 +109,6 @@ export class InvoiceDetailComponent
 
   ];
 
-
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -116,74 +117,68 @@ export class InvoiceDetailComponent
     private paymentService: PaymentService
   ) {}
 
-
   ngOnInit(): void {
 
-    this.paymentForm = this.fb.group({
+    this.paymentForm =
+      this.fb.group({
 
-      amount: [
-        null,
-        [
-          Validators.required,
-          Validators.min(0.01)
+        amount: [
+          null,
+          [
+            Validators.required,
+            Validators.min(0.01)
+          ]
+        ],
+
+        payment_method: [
+          'BANK_TRANSFER',
+          Validators.required
+        ],
+
+        payment_date: [
+          this.getTodayDate(),
+          Validators.required
+        ],
+
+        reference_no: [
+          ''
+        ],
+
+        notes: [
+          ''
         ]
-      ],
 
-      payment_method: [
-        'BANK_TRANSFER',
-        Validators.required
-      ],
+      });
 
-      payment_date: [
-        this.getTodayDate(),
-        Validators.required
-      ],
+    const id =
+      Number(
+        this.route.snapshot
+          .paramMap
+          .get('id')
+      );
 
-      reference_no: [
-        ''
-      ],
+    if (
+      !Number.isInteger(id) ||
+      id <= 0
+    ) {
 
-      notes: [
-        ''
-      ]
+      this.errorMessage =
+        'Invalid invoice ID.';
 
-    });
+      return;
+    }
 
+    this.invoiceId =
+      id;
 
-    this.route.paramMap.subscribe(
-      params => {
-
-        const id = Number(
-          params.get('id')
-        );
-
-
-        if (
-          !Number.isInteger(id) ||
-          id <= 0
-        ) {
-
-          this.errorMessage =
-            'Invalid invoice ID.';
-
-          return;
-
-        }
-
-
-        this.invoiceId = id;
-
-        this.loadInvoice();
-
-      }
-    );
+    this.loadInvoice();
 
   }
 
+  // ==========================================================
+  // Load Invoice
+  // ==========================================================
 
-  /*
-   * Load the invoice and then load its payments.
-   */
   loadInvoice(): void {
 
     this.loading = true;
@@ -191,15 +186,20 @@ export class InvoiceDetailComponent
     this.errorMessage = '';
 
     this.invoiceService
-      .getInvoice(this.invoiceId)
+      .getInvoice(
+        this.invoiceId
+      )
       .subscribe({
 
         next: response => {
 
           this.invoice =
-            this.extractInvoice(response);
+            this.extractInvoice(
+              response
+            );
 
-          this.loading = false;
+          this.loading =
+            false;
 
           this.loadPaymentSummary();
 
@@ -216,7 +216,8 @@ export class InvoiceDetailComponent
             error?.error?.error ||
             'Failed to load invoice.';
 
-          this.loading = false;
+          this.loading =
+            false;
 
         }
 
@@ -224,18 +225,14 @@ export class InvoiceDetailComponent
 
   }
 
+  // ==========================================================
+  // Extract Invoice
+  // ==========================================================
 
-  /*
-   * Support either:
-   *
-   * {
-   *   "invoice": { ... }
-   * }
-   *
-   * or a direct invoice object.
-   */
   private extractInvoice(
-    response: Invoice | InvoiceResponse
+    response:
+      Invoice |
+      InvoiceResponse
   ): Invoice {
 
     if (
@@ -252,19 +249,21 @@ export class InvoiceDetailComponent
 
   }
 
+  // ==========================================================
+  // Payment Summary
+  // ==========================================================
 
-  /*
-   * Load payments and outstanding balance.
-   */
   loadPaymentSummary(): void {
 
     if (!this.invoiceId) {
       return;
     }
 
-    this.loadingPayments = true;
+    this.loadingPayments =
+      true;
 
-    this.paymentErrorMessage = '';
+    this.paymentErrorMessage =
+      '';
 
     this.paymentService
       .getInvoicePaymentSummary(
@@ -277,7 +276,8 @@ export class InvoiceDetailComponent
           this.paymentSummary =
             response.payment_summary;
 
-          this.loadingPayments = false;
+          this.loadingPayments =
+            false;
 
         },
 
@@ -292,7 +292,8 @@ export class InvoiceDetailComponent
             error?.error?.error ||
             'Failed to load payment information.';
 
-          this.loadingPayments = false;
+          this.loadingPayments =
+            false;
 
         }
 
@@ -300,16 +301,17 @@ export class InvoiceDetailComponent
 
   }
 
+  // ==========================================================
+  // Create Payment
+  // ==========================================================
 
-  /*
-   * Create a payment.
-   */
   createPayment(): void {
 
-    this.paymentErrorMessage = '';
+    this.paymentErrorMessage =
+      '';
 
-    this.paymentSuccessMessage = '';
-
+    this.paymentSuccessMessage =
+      '';
 
     if (!this.invoice) {
 
@@ -317,9 +319,7 @@ export class InvoiceDetailComponent
         'Invoice information is unavailable.';
 
       return;
-
     }
-
 
     if (!this.canAddPayment()) {
 
@@ -327,32 +327,33 @@ export class InvoiceDetailComponent
         'Payments cannot be added to this invoice.';
 
       return;
-
     }
-
 
     if (this.paymentForm.invalid) {
 
-      this.paymentForm.markAllAsTouched();
+      this.paymentForm
+        .markAllAsTouched();
 
       this.paymentErrorMessage =
         'Please complete all required payment fields.';
 
       return;
-
     }
 
-
-    const paymentAmount = Number(
-      this.paymentForm.value.amount
-    );
+    const paymentAmount =
+      Number(
+        this.paymentForm
+          .value
+          .amount
+      );
 
     const outstanding =
       this.getOutstandingBalance();
 
-
     if (
-      !Number.isFinite(paymentAmount) ||
+      !Number.isFinite(
+        paymentAmount
+      ) ||
       paymentAmount <= 0
     ) {
 
@@ -360,9 +361,7 @@ export class InvoiceDetailComponent
         'Payment amount must be greater than zero.';
 
       return;
-
     }
-
 
     if (
       paymentAmount >
@@ -373,41 +372,43 @@ export class InvoiceDetailComponent
         `Payment cannot exceed the outstanding balance of RM ${outstanding.toFixed(2)}.`;
 
       return;
-
     }
 
-
-    const paymentMethod =
-      this.paymentForm.value
-        .payment_method as PaymentMethod;
-
+    const paymentMethod = (
+  this.paymentForm.value.payment_method
+) as PaymentMethod;
 
     const referenceNo =
-      this.paymentForm.value
+      this.paymentForm
+        .value
         .reference_no
-        ?.trim() || null;
-
+        ?.trim() ||
+      null;
 
     const notes =
-      this.paymentForm.value
+      this.paymentForm
+        .value
         .notes
-        ?.trim() || null;
+        ?.trim() ||
+      null;
 
-
-    const payload: CreatePaymentRequest = {
+    const payload:
+      CreatePaymentRequest = {
 
       invoice_id:
         this.invoiceId,
 
       amount:
-        paymentAmount.toFixed(2),
+        paymentAmount
+          .toFixed(2),
 
       payment_method:
         paymentMethod,
 
       payment_date:
         this.toISOString(
-          this.paymentForm.value
+          this.paymentForm
+            .value
             .payment_date
         ),
 
@@ -419,41 +420,26 @@ export class InvoiceDetailComponent
 
     };
 
-
-    console.log(
-      'Creating payment:',
-      payload
-    );
-
-
-    this.submittingPayment = true;
-
+    this.submittingPayment =
+      true;
 
     this.paymentService
-      .createPayment(payload)
+      .createPayment(
+        payload
+      )
       .subscribe({
 
         next: response => {
 
-          console.log(
-            'Payment created:',
-            response
-          );
-
-          this.submittingPayment = false;
+          this.submittingPayment =
+            false;
 
           this.paymentSuccessMessage =
             response.message ||
             'Payment created successfully.';
 
-
           this.resetPaymentForm();
 
-
-          /*
-           * Reload both because the invoice
-           * status may now be PARTIAL or PAID.
-           */
           this.refreshInvoiceAndPayments();
 
         },
@@ -465,11 +451,12 @@ export class InvoiceDetailComponent
             error
           );
 
+          this.submittingPayment =
+            false;
+
           this.paymentErrorMessage =
             error?.error?.error ||
             'Failed to create payment.';
-
-          this.submittingPayment = false;
 
         }
 
@@ -477,20 +464,223 @@ export class InvoiceDetailComponent
 
   }
 
+  // ==========================================================
+  // Cancel Invoice
+  // ==========================================================
 
-  /*
-   * Refresh invoice status and payment totals.
-   */
+  cancelInvoice(): void {
+
+    if (!this.invoice?.id) {
+      return;
+    }
+
+    if (!this.canCancelInvoice()) {
+
+      this.errorMessage =
+        'This invoice cannot be cancelled.';
+
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        'Are you sure you want to cancel this invoice?'
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.errorMessage =
+      '';
+
+    this.actionSuccessMessage =
+      '';
+
+    this.cancellingInvoice =
+      true;
+
+    /*
+     * For an ISSUED invoice the backend only needs
+     * the status because it restores the ORIGINAL
+     * invoice item quantities.
+     *
+     * For DRAFT we submit the existing values so the
+     * current UpdateInvoice endpoint can process it
+     * normally.
+     */
+
+    if (
+      this.invoice.status
+        ?.toUpperCase() ===
+      'ISSUED'
+    ) {
+
+      const payload = {
+        status: 'CANCELLED'
+      };
+
+      this.invoiceService
+        .updateInvoice(
+          this.invoiceId,
+          payload
+        )
+        .subscribe({
+
+          next: () => {
+
+            this.cancellingInvoice =
+              false;
+
+            this.actionSuccessMessage =
+              'Invoice cancelled successfully.';
+
+            this.refreshInvoiceAndPayments();
+
+          },
+
+          error: error => {
+
+            console.error(
+              'Failed to cancel invoice:',
+              error
+            );
+
+            this.cancellingInvoice =
+              false;
+
+            this.errorMessage =
+              error?.error?.error ||
+              'Failed to cancel invoice.';
+
+          }
+
+        });
+
+      return;
+    }
+
+    /*
+     * DRAFT cancellation.
+     */
+    const payload = {
+
+      customer_id:
+        this.invoice.customer_id,
+
+      invoice_date:
+        this.invoice.invoice_date,
+
+      due_date:
+        this.invoice.due_date ??
+        null,
+
+      status:
+        'CANCELLED',
+
+      discount:
+        Number(
+          this.invoice.discount ??
+          0
+        ).toFixed(2),
+
+      tax:
+        Number(
+          this.invoice.tax ??
+          0
+        ).toFixed(2),
+
+      notes:
+        this.invoice.notes ??
+        null,
+
+      items:
+        (
+          this.invoice.items ??
+          []
+        ).map(item => ({
+
+          product_id:
+            item.product_id,
+
+          quantity:
+            Number(
+              item.quantity
+            ),
+
+          unit_price:
+            Number(
+              item.unit_price ??
+              0
+            ).toFixed(2),
+
+          discount:
+            Number(
+              item.discount ??
+              0
+            ).toFixed(2)
+
+        }))
+
+    };
+
+    this.invoiceService
+      .updateInvoice(
+        this.invoiceId,
+        payload
+      )
+      .subscribe({
+
+        next: () => {
+
+          this.cancellingInvoice =
+            false;
+
+          this.actionSuccessMessage =
+            'Invoice cancelled successfully.';
+
+          this.refreshInvoiceAndPayments();
+
+        },
+
+        error: error => {
+
+          console.error(
+            'Failed to cancel invoice:',
+            error
+          );
+
+          this.cancellingInvoice =
+            false;
+
+          this.errorMessage =
+            error?.error?.error ||
+            'Failed to cancel invoice.';
+
+        }
+
+      });
+
+  }
+
+  // ==========================================================
+  // Refresh
+  // ==========================================================
+
   refreshInvoiceAndPayments(): void {
 
     this.invoiceService
-      .getInvoice(this.invoiceId)
+      .getInvoice(
+        this.invoiceId
+      )
       .subscribe({
 
         next: response => {
 
           this.invoice =
-            this.extractInvoice(response);
+            this.extractInvoice(
+              response
+            );
 
           this.loadPaymentSummary();
 
@@ -511,15 +701,16 @@ export class InvoiceDetailComponent
 
   }
 
+  // ==========================================================
+  // Reset Payment Form
+  // ==========================================================
 
-  /*
-   * Reset payment form while keeping today's date.
-   */
   resetPaymentForm(): void {
 
     this.paymentForm.reset({
 
-      amount: null,
+      amount:
+        null,
 
       payment_method:
         'BANK_TRANSFER',
@@ -527,18 +718,51 @@ export class InvoiceDetailComponent
       payment_date:
         this.getTodayDate(),
 
-      reference_no: '',
+      reference_no:
+        '',
 
-      notes: ''
+      notes:
+        ''
 
     });
 
   }
 
+  // ==========================================================
+  // Business Rules
+  // ==========================================================
 
-  /*
-   * Whether the current invoice may accept payments.
-   */
+  canEditInvoice(): boolean {
+
+    if (!this.invoice) {
+      return false;
+    }
+
+    return (
+      this.invoice.status
+        ?.toUpperCase() ===
+      'DRAFT'
+    );
+
+  }
+
+  canCancelInvoice(): boolean {
+
+    if (!this.invoice) {
+      return false;
+    }
+
+    const status =
+      this.invoice.status
+        ?.toUpperCase();
+
+    return (
+      status === 'DRAFT' ||
+      status === 'ISSUED'
+    );
+
+  }
+
   canAddPayment(): boolean {
 
     if (!this.invoice) {
@@ -556,60 +780,32 @@ export class InvoiceDetailComponent
 
   }
 
+  // ==========================================================
+  // Payment Helpers
+  // ==========================================================
 
-  /*
-   * Whether editing is allowed.
-   */
-  canEditInvoice(): boolean {
-
-    if (!this.invoice) {
-      return false;
-    }
-
-    const status =
-      this.invoice.status
-        ?.toUpperCase();
-
-    return (
-      status !== 'PARTIAL' &&
-      status !== 'PAID' &&
-      status !== 'CANCELLED'
-    );
-
-  }
-
-
-  /*
-   * Return payment history safely.
-   */
   getPayments(): Payment[] {
 
     return (
-      this.paymentSummary?.payments ??
+      this.paymentSummary
+        ?.payments ??
       []
     );
 
   }
 
-
-  /*
-   * Outstanding balance.
-   */
   getOutstandingBalance(): number {
 
     return Number(
       this.paymentSummary
         ?.outstanding_balance ??
-      this.invoice?.total ??
+      this.invoice
+        ?.total ??
       0
     ) || 0;
 
   }
 
-
-  /*
-   * Amount already paid.
-   */
   getAmountPaid(): number {
 
     return Number(
@@ -620,25 +816,22 @@ export class InvoiceDetailComponent
 
   }
 
-
-  /*
-   * Invoice total.
-   */
   getInvoiceTotal(): number {
 
     return Number(
       this.paymentSummary
         ?.invoice_total ??
-      this.invoice?.total ??
+      this.invoice
+        ?.total ??
       0
     ) || 0;
 
   }
 
+  // ==========================================================
+  // Invoice Item Helpers
+  // ==========================================================
 
-  /*
-   * Item total.
-   */
   getItemTotal(
     item: InvoiceItem
   ): number {
@@ -654,27 +847,32 @@ export class InvoiceDetailComponent
 
     }
 
-
     const quantity =
-      Number(item.quantity) || 0;
+      Number(
+        item.quantity
+      ) || 0;
 
     const unitPrice =
-      Number(item.unit_price) || 0;
+      Number(
+        item.unit_price
+      ) || 0;
 
     const discount =
-      Number(item.discount) || 0;
-
+      Number(
+        item.discount
+      ) || 0;
 
     return (
-      quantity * unitPrice
+      quantity *
+      unitPrice
     ) - discount;
 
   }
 
+  // ==========================================================
+  // Formatting
+  // ==========================================================
 
-  /*
-   * Currency formatting.
-   */
   formatMoney(
     value:
       string |
@@ -684,24 +882,26 @@ export class InvoiceDetailComponent
   ): string {
 
     const amount =
-      Number(value ?? 0);
+      Number(
+        value ??
+        0
+      );
 
-
-    if (!Number.isFinite(amount)) {
+    if (
+      !Number.isFinite(
+        amount
+      )
+    ) {
 
       return '0.00';
 
     }
 
-
-    return amount.toFixed(2);
+    return amount
+      .toFixed(2);
 
   }
 
-
-  /*
-   * Date formatting.
-   */
   formatDate(
     value:
       string |
@@ -713,10 +913,10 @@ export class InvoiceDetailComponent
       return '-';
     }
 
-
     const date =
-      new Date(value);
-
+      new Date(
+        value
+      );
 
     if (
       Number.isNaN(
@@ -728,22 +928,18 @@ export class InvoiceDetailComponent
 
     }
 
-
-    return date.toLocaleDateString(
-      'en-MY',
-      {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      }
-    );
+    return date
+      .toLocaleDateString(
+        'en-MY',
+        {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        }
+      );
 
   }
 
-
-  /*
-   * Status badge classes.
-   */
   getStatusClass(
     status:
       string |
@@ -777,10 +973,6 @@ export class InvoiceDetailComponent
 
   }
 
-
-  /*
-   * Human-readable payment method.
-   */
   formatPaymentMethod(
     method:
       string |
@@ -792,9 +984,11 @@ export class InvoiceDetailComponent
       return '-';
     }
 
-
     return method
-      .replaceAll('_', ' ')
+      .replaceAll(
+        '_',
+        ' '
+      )
       .toLowerCase()
       .replace(
         /\b\w/g,
@@ -804,23 +998,22 @@ export class InvoiceDetailComponent
 
   }
 
+  // ==========================================================
+  // Payment Utility
+  // ==========================================================
 
-  /*
-   * Set the full outstanding amount
-   * into the payment form.
-   */
   useOutstandingBalance(): void {
 
     this.paymentForm.patchValue({
 
       amount:
-        this.getOutstandingBalance()
+        this
+          .getOutstandingBalance()
           .toFixed(2)
 
     });
 
   }
-
 
   getTodayDate(): string {
 
@@ -830,19 +1023,30 @@ export class InvoiceDetailComponent
 
   }
 
-
   toISOString(
     date: string
   ): string {
+
+    if (
+      date.includes('T')
+    ) {
+      return date;
+    }
 
     return `${date}T00:00:00Z`;
 
   }
 
+  // ==========================================================
+  // Navigation
+  // ==========================================================
 
   editInvoice(): void {
 
-    if (!this.invoice?.id) {
+    if (
+      !this.invoice?.id ||
+      !this.canEditInvoice()
+    ) {
       return;
     }
 
@@ -854,7 +1058,6 @@ export class InvoiceDetailComponent
 
   }
 
-
   backToInvoices(): void {
 
     this.router.navigate([
@@ -862,7 +1065,6 @@ export class InvoiceDetailComponent
     ]);
 
   }
-
 
   printInvoice(): void {
 

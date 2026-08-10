@@ -8,7 +8,7 @@
     </h1>
 
     <p class="mt-1 text-sm text-gray-500">
-      Create a new invoice for a customer.
+      Create a new draft invoice for a customer.
     </p>
 
   </div>
@@ -17,21 +17,36 @@
   <!-- Error -->
   <div
     *ngIf="errorMessage"
-    class="rounded-lg bg-red-50 p-4 text-sm text-red-600 shadow"
+    class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow"
+  >
+    {{ errorMessage }}
+  </div>
+
+
+  <!-- Stock Warning -->
+  <div
+    *ngIf="hasAnyStockShortage()"
+    class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow"
   >
 
-    {{ errorMessage }}
+    <p class="font-semibold">
+      Stock warning
+    </p>
+
+    <p class="mt-1">
+      One or more products do not currently have enough stock.
+      You can still save this invoice as DRAFT, but it cannot
+      be issued until sufficient stock is available.
+    </p>
 
   </div>
 
 
-  <!-- Invoice Form -->
   <form
     [formGroup]="invoiceForm"
     (ngSubmit)="createInvoice()"
     class="space-y-6"
   >
-
 
     <!-- ===================================================== -->
     <!-- Invoice Information -->
@@ -47,7 +62,6 @@
       <div
         class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2"
       >
-
 
         <!-- Invoice Number -->
         <div>
@@ -163,24 +177,16 @@
             Status
           </label>
 
-          <select
-            formControlName="status"
-            class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          <input
+            type="text"
+            value="DRAFT"
+            readonly
+            class="mt-1 block w-full cursor-not-allowed rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600 shadow-sm sm:text-sm"
           >
 
-            <option value="DRAFT">
-              DRAFT
-            </option>
-
-            <option value="ISSUED">
-              ISSUED
-            </option>
-
-            <option value="CANCELLED">
-              CANCELLED
-            </option>
-
-          </select>
+          <p class="mt-1 text-xs text-gray-500">
+            New invoices start as DRAFT. Issue the invoice after reviewing it.
+          </p>
 
         </div>
 
@@ -212,10 +218,6 @@
 
           </div>
 
-          <p class="mt-1 text-xs text-gray-500">
-            Discount applied to the whole invoice.
-          </p>
-
         </div>
 
 
@@ -245,10 +247,6 @@
             >
 
           </div>
-
-          <p class="mt-1 text-xs text-gray-500">
-            Tax amount applied to the invoice.
-          </p>
 
         </div>
 
@@ -293,7 +291,7 @@
           </h2>
 
           <p class="mt-1 text-sm text-gray-500">
-            Add the products being invoiced.
+            Add products and review current stock availability.
           </p>
 
         </div>
@@ -318,39 +316,31 @@
 
             <tr>
 
-              <th
-                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
-              >
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500">
                 Product
               </th>
 
-              <th
-                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
-              >
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500">
                 Quantity
               </th>
 
-              <th
-                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
-              >
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500">
+                Stock
+              </th>
+
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500">
                 Unit Price
               </th>
 
-              <th
-                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
-              >
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500">
                 Discount
               </th>
 
-              <th
-                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500"
-              >
+              <th class="px-6 py-3 text-right text-xs font-semibold uppercase text-gray-500">
                 Total
               </th>
 
-              <th
-                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500"
-              >
+              <th class="px-6 py-3 text-right text-xs font-semibold uppercase text-gray-500">
                 Action
               </th>
 
@@ -359,14 +349,13 @@
           </thead>
 
 
-          <tbody
-            class="divide-y divide-gray-200 bg-white"
-          >
+          <tbody class="divide-y divide-gray-200 bg-white">
 
             @for (item of items; track $index) {
 
-              <tr>
-
+              <tr
+                [class.bg-red-50]="hasStockShortage(item)"
+              >
 
                 <!-- Product -->
                 <td class="px-6 py-4">
@@ -408,6 +397,61 @@
                 </td>
 
 
+                <!-- Stock -->
+                <td class="min-w-[190px] px-6 py-4 text-sm">
+
+                  <ng-container *ngIf="item.product_id">
+
+                    <div class="text-gray-600">
+                      Available:
+                      <span class="font-semibold text-gray-900">
+                        {{ getAvailableStock(item) }}
+                      </span>
+                    </div>
+
+                    <div class="mt-1 text-gray-600">
+                      Requested:
+                      <span class="font-semibold">
+                        {{
+                          getRequestedQuantityForProduct(
+                            item.product_id
+                          )
+                        }}
+                      </span>
+                    </div>
+
+                    <div
+                      class="mt-1"
+                      [ngClass]="
+                        hasStockShortage(item)
+                          ? 'font-semibold text-red-600'
+                          : 'text-green-700'
+                      "
+                    >
+                      Remaining:
+                      {{ getRemainingStock(item) }}
+                    </div>
+
+                    <p
+                      *ngIf="hasStockShortage(item)"
+                      class="mt-1 text-xs font-medium text-red-600"
+                    >
+                      Insufficient stock
+                    </p>
+
+                  </ng-container>
+
+
+                  <span
+                    *ngIf="!item.product_id"
+                    class="text-gray-400"
+                  >
+                    -
+                  </span>
+
+                </td>
+
+
                 <!-- Unit Price -->
                 <td class="px-6 py-4">
 
@@ -423,7 +467,7 @@
                 </td>
 
 
-                <!-- Item Discount -->
+                <!-- Discount -->
                 <td class="px-6 py-4">
 
                   <input
@@ -438,13 +482,11 @@
                 </td>
 
 
-                <!-- Item Total -->
+                <!-- Total -->
                 <td
                   class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium text-gray-900"
                 >
-
                   RM {{ getItemTotal(item) | number:'1.2-2' }}
-
                 </td>
 
 
@@ -473,84 +515,33 @@
       </div>
 
 
-      <!-- =================================================== -->
-      <!-- Invoice Totals -->
-      <!-- =================================================== -->
-
-      <div
-        class="border-t border-gray-200 p-6"
-      >
+      <!-- Totals -->
+      <div class="border-t border-gray-200 p-6">
 
         <div class="ml-auto max-w-sm space-y-3">
 
-
-          <!-- Subtotal -->
-          <div
-            class="flex justify-between text-sm text-gray-700"
-          >
-
-            <span>
-              Subtotal
-            </span>
-
-            <span>
-              RM {{ getSubtotal() | number:'1.2-2' }}
-            </span>
-
+          <div class="flex justify-between text-sm text-gray-700">
+            <span>Subtotal</span>
+            <span>RM {{ getSubtotal() | number:'1.2-2' }}</span>
           </div>
 
-
-          <!-- Invoice Discount -->
-          <div
-            class="flex justify-between text-sm text-gray-700"
-          >
-
-            <span>
-              Discount
-            </span>
-
+          <div class="flex justify-between text-sm text-gray-700">
+            <span>Discount</span>
             <span class="text-red-600">
-
-              - RM
-              {{ getInvoiceDiscount() | number:'1.2-2' }}
-
+              - RM {{ getInvoiceDiscount() | number:'1.2-2' }}
             </span>
-
           </div>
 
-
-          <!-- Tax -->
-          <div
-            class="flex justify-between text-sm text-gray-700"
-          >
-
-            <span>
-              Tax
-            </span>
-
-            <span>
-
-              RM
-              {{ getTax() | number:'1.2-2' }}
-
-            </span>
-
+          <div class="flex justify-between text-sm text-gray-700">
+            <span>Tax</span>
+            <span>RM {{ getTax() | number:'1.2-2' }}</span>
           </div>
 
-
-          <!-- Total -->
           <div
             class="flex justify-between border-t border-gray-200 pt-3 text-lg font-bold text-gray-900"
           >
-
-            <span>
-              Total
-            </span>
-
-            <span>
-              RM {{ getTotal() | number:'1.2-2' }}
-            </span>
-
+            <span>Total</span>
+            <span>RM {{ getTotal() | number:'1.2-2' }}</span>
           </div>
 
         </div>
@@ -560,10 +551,7 @@
     </div>
 
 
-    <!-- ===================================================== -->
     <!-- Buttons -->
-    <!-- ===================================================== -->
-
     <div class="flex items-center justify-end gap-3">
 
       <button
@@ -580,9 +568,7 @@
         [disabled]="submitting"
         class="rounded-md bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
-
-        {{ submitting ? 'Creating...' : 'Create Invoice' }}
-
+        {{ submitting ? 'Creating...' : 'Create Draft Invoice' }}
       </button>
 
     </div>

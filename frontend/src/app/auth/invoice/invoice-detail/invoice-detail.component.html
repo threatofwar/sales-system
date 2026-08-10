@@ -1,9 +1,28 @@
 <div class="space-y-6">
 
+  <!-- ===================================================== -->
   <!-- Header -->
+  <!-- ===================================================== -->
+
   <div
     class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
   >
+
+    <div class="hidden print:block">
+
+      <div class="mb-6 border-b border-gray-300 pb-4">
+
+        <h1 class="text-2xl font-bold">
+          Invoice
+        </h1>
+
+        <p class="mt-1 text-sm">
+          {{ invoice?.invoice_number }}
+        </p>
+
+      </div>
+
+    </div>
 
     <div>
 
@@ -23,7 +42,7 @@
       <button
         type="button"
         (click)="backToInvoices()"
-        class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+        class="no-printrounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
       >
         Back
       </button>
@@ -33,19 +52,36 @@
         type="button"
         (click)="printInvoice()"
         [disabled]="!invoice"
-        class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+        class="no-print rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         Print
       </button>
 
 
+      <!-- Edit is DRAFT only -->
       <button
         *ngIf="canEditInvoice()"
         type="button"
         (click)="editInvoice()"
-        class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500"
+        class="no-print rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500"
       >
         Edit Invoice
+      </button>
+
+
+      <!-- Cancel is DRAFT / ISSUED only -->
+      <button
+        *ngIf="canCancelInvoice()"
+        type="button"
+        (click)="cancelInvoice()"
+        [disabled]="cancellingInvoice"
+        class="no-print rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {{
+          cancellingInvoice
+            ? 'Cancelling...'
+            : 'Cancel Invoice'
+        }}
       </button>
 
     </div>
@@ -53,7 +89,10 @@
   </div>
 
 
+  <!-- ===================================================== -->
   <!-- Loading -->
+  <!-- ===================================================== -->
+
   <div
     *ngIf="loading"
     class="rounded-lg bg-white p-8 text-center text-sm text-gray-500 shadow"
@@ -62,12 +101,27 @@
   </div>
 
 
-  <!-- Invoice Error -->
+  <!-- ===================================================== -->
+  <!-- Error -->
+  <!-- ===================================================== -->
+
   <div
-    *ngIf="!loading && errorMessage"
+    *ngIf="errorMessage"
     class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow"
   >
     {{ errorMessage }}
+  </div>
+
+
+  <!-- ===================================================== -->
+  <!-- Success -->
+  <!-- ===================================================== -->
+
+  <div
+    *ngIf="actionSuccessMessage"
+    class="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700 shadow"
+  >
+    {{ actionSuccessMessage }}
   </div>
 
 
@@ -75,7 +129,10 @@
     *ngIf="!loading && invoice"
   >
 
+    <!-- =================================================== -->
     <!-- Invoice Information -->
+    <!-- =================================================== -->
+
     <div class="rounded-lg bg-white p-6 shadow">
 
       <div
@@ -119,13 +176,13 @@
             Customer
           </p>
 
-          <p
-            class="mt-1 font-semibold text-gray-900"
-          >
+          <p class="mt-1 font-semibold text-gray-900">
+
             {{
               invoice.customer_name ||
               ('Customer #' + invoice.customer_id)
             }}
+
           </p>
 
         </div>
@@ -137,10 +194,14 @@
             Invoice Date
           </p>
 
-          <p
-            class="mt-1 font-semibold text-gray-900"
-          >
-            {{ formatDate(invoice.invoice_date) }}
+          <p class="mt-1 font-semibold text-gray-900">
+
+            {{
+              formatDate(
+                invoice.invoice_date
+              )
+            }}
+
           </p>
 
         </div>
@@ -152,10 +213,14 @@
             Due Date
           </p>
 
-          <p
-            class="mt-1 font-semibold text-gray-900"
-          >
-            {{ formatDate(invoice.due_date) }}
+          <p class="mt-1 font-semibold text-gray-900">
+
+            {{
+              formatDate(
+                invoice.due_date
+              )
+            }}
+
           </p>
 
         </div>
@@ -167,10 +232,14 @@
             Last Updated
           </p>
 
-          <p
-            class="mt-1 font-semibold text-gray-900"
-          >
-            {{ formatDate(invoice.updated_at) }}
+          <p class="mt-1 font-semibold text-gray-900">
+
+            {{
+              formatDate(
+                invoice.updated_at
+              )
+            }}
+
           </p>
 
         </div>
@@ -198,7 +267,10 @@
     </div>
 
 
+    <!-- =================================================== -->
     <!-- Invoice Items -->
+    <!-- =================================================== -->
+
     <div
       class="overflow-hidden rounded-lg bg-white shadow"
     >
@@ -217,7 +289,10 @@
 
 
       <div
-        *ngIf="invoice.items?.length; else noInvoiceItems"
+        *ngIf="
+          invoice.items &&
+          invoice.items.length > 0
+        "
         class="overflow-x-auto"
       >
 
@@ -269,16 +344,20 @@
           >
 
             <tr
-              *ngFor="let item of invoice.items"
+              *ngFor="
+                let item of invoice.items
+              "
             >
 
               <td
                 class="px-6 py-4 text-sm font-medium text-gray-900"
               >
+
                 {{
                   item.product_name ||
                   ('Product #' + item.product_id)
                 }}
+
               </td>
 
 
@@ -292,21 +371,42 @@
               <td
                 class="px-6 py-4 text-right text-sm text-gray-700"
               >
-                RM {{ formatMoney(item.unit_price) }}
+
+                RM
+                {{
+                  formatMoney(
+                    item.unit_price
+                  )
+                }}
+
               </td>
 
 
               <td
                 class="px-6 py-4 text-right text-sm text-gray-700"
               >
-                RM {{ formatMoney(item.discount) }}
+
+                RM
+                {{
+                  formatMoney(
+                    item.discount
+                  )
+                }}
+
               </td>
 
 
               <td
                 class="px-6 py-4 text-right text-sm font-semibold text-gray-900"
               >
-                RM {{ formatMoney(getItemTotal(item)) }}
+
+                RM
+                {{
+                  formatMoney(
+                    getItemTotal(item)
+                  )
+                }}
+
               </td>
 
             </tr>
@@ -318,18 +418,21 @@
       </div>
 
 
-      <ng-template #noInvoiceItems>
+      <div
+        *ngIf="
+          !invoice.items ||
+          invoice.items.length === 0
+        "
+        class="p-8 text-center text-sm text-gray-500"
+      >
+        No invoice items found.
+      </div>
 
-        <div
-          class="p-8 text-center text-sm text-gray-500"
-        >
-          No invoice items found.
-        </div>
 
-      </ng-template>
-
-
+      <!-- ================================================= -->
       <!-- Invoice Totals -->
+      <!-- ================================================= -->
+
       <div
         class="border-t border-gray-200 p-6"
       >
@@ -347,7 +450,14 @@
             </span>
 
             <span>
-              RM {{ formatMoney(invoice.subtotal) }}
+
+              RM
+              {{
+                formatMoney(
+                  invoice.subtotal
+                )
+              }}
+
             </span>
 
           </div>
@@ -362,7 +472,14 @@
             </span>
 
             <span class="text-red-600">
-              - RM {{ formatMoney(invoice.discount) }}
+
+              - RM
+              {{
+                formatMoney(
+                  invoice.discount
+                )
+              }}
+
             </span>
 
           </div>
@@ -377,7 +494,14 @@
             </span>
 
             <span>
-              RM {{ formatMoney(invoice.tax) }}
+
+              RM
+              {{
+                formatMoney(
+                  invoice.tax
+                )
+              }}
+
             </span>
 
           </div>
@@ -392,7 +516,14 @@
             </span>
 
             <span>
-              RM {{ formatMoney(invoice.total) }}
+
+              RM
+              {{
+                formatMoney(
+                  invoice.total
+                )
+              }}
+
             </span>
 
           </div>
@@ -404,7 +535,10 @@
     </div>
 
 
+    <!-- =================================================== -->
     <!-- Payment Summary -->
+    <!-- =================================================== -->
+
     <div
       class="rounded-lg bg-white p-6 shadow"
     >
@@ -433,9 +567,15 @@
         <span
           *ngIf="paymentSummary"
           class="inline-flex w-fit rounded-full px-3 py-1 text-sm font-semibold"
-          [ngClass]="getStatusClass(paymentSummary.status)"
+          [ngClass]="
+            getStatusClass(
+              paymentSummary.status
+            )
+          "
         >
+
           {{ paymentSummary.status }}
+
         </span>
 
       </div>
@@ -458,7 +598,10 @@
 
 
       <div
-        *ngIf="!loadingPayments && paymentSummary"
+        *ngIf="
+          !loadingPayments &&
+          paymentSummary
+        "
         class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3"
       >
 
@@ -473,7 +616,14 @@
           <p
             class="mt-1 text-xl font-bold text-gray-900"
           >
-            RM {{ formatMoney(getInvoiceTotal()) }}
+
+            RM
+            {{
+              formatMoney(
+                getInvoiceTotal()
+              )
+            }}
+
           </p>
 
         </div>
@@ -490,7 +640,14 @@
           <p
             class="mt-1 text-xl font-bold text-green-800"
           >
-            RM {{ formatMoney(getAmountPaid()) }}
+
+            RM
+            {{
+              formatMoney(
+                getAmountPaid()
+              )
+            }}
+
           </p>
 
         </div>
@@ -507,7 +664,14 @@
           <p
             class="mt-1 text-xl font-bold text-orange-800"
           >
-            RM {{ formatMoney(getOutstandingBalance()) }}
+
+            RM
+            {{
+              formatMoney(
+                getOutstandingBalance()
+              )
+            }}
+
           </p>
 
         </div>
@@ -517,10 +681,13 @@
     </div>
 
 
+    <!-- =================================================== -->
     <!-- Add Payment -->
+    <!-- =================================================== -->
+
     <div
       *ngIf="canAddPayment()"
-      class="rounded-lg bg-white p-6 shadow"
+      class="no-print rounded-lg bg-white p-6 shadow"
     >
 
       <h2
@@ -603,17 +770,6 @@
 
             </div>
 
-
-            <p
-              *ngIf="
-                paymentForm.get('amount')?.touched &&
-                paymentForm.get('amount')?.invalid
-              "
-              class="mt-1 text-sm text-red-600"
-            >
-              Enter a payment amount greater than zero.
-            </p>
-
           </div>
 
 
@@ -632,7 +788,9 @@
             >
 
               <option
-                *ngFor="let method of paymentMethods"
+                *ngFor="
+                  let method of paymentMethods
+                "
                 [value]="method.value"
               >
                 {{ method.label }}
@@ -661,7 +819,7 @@
           </div>
 
 
-          <!-- Reference Number -->
+          <!-- Reference -->
           <div>
 
             <label
@@ -708,11 +866,13 @@
             [disabled]="submittingPayment"
             class="rounded-md bg-green-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
+
             {{
               submittingPayment
                 ? 'Recording...'
                 : 'Record Payment'
             }}
+
           </button>
 
         </div>
@@ -722,35 +882,48 @@
     </div>
 
 
-    <!-- Payment closed message -->
+    <!-- =================================================== -->
+    <!-- Status Information -->
+    <!-- =================================================== -->
+
     <div
-      *ngIf="
-        !canAddPayment() &&
-        (
-          invoice.status === 'PAID' ||
-          invoice.status === 'CANCELLED' ||
-          invoice.status === 'DRAFT'
-        )
-      "
+      *ngIf="!canAddPayment()"
       class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600"
     >
 
-      <span *ngIf="invoice.status === 'DRAFT'">
-        Change this invoice to ISSUED before recording a payment.
+      <span
+        *ngIf="
+          invoice.status === 'DRAFT'
+        "
+      >
+        Issue this invoice before recording a payment.
       </span>
 
-      <span *ngIf="invoice.status === 'PAID'">
+
+      <span
+        *ngIf="
+          invoice.status === 'PAID'
+        "
+      >
         This invoice has been paid in full.
       </span>
 
-      <span *ngIf="invoice.status === 'CANCELLED'">
-        Payments cannot be recorded for a cancelled invoice.
+
+      <span
+        *ngIf="
+          invoice.status === 'CANCELLED'
+        "
+      >
+        This invoice has been cancelled.
       </span>
 
     </div>
 
 
+    <!-- =================================================== -->
     <!-- Payment History -->
+    <!-- =================================================== -->
+
     <div
       class="overflow-hidden rounded-lg bg-white shadow"
     >
@@ -838,24 +1011,34 @@
           >
 
             <tr
-              *ngFor="let payment of getPayments()"
+              *ngFor="
+                let payment of getPayments()
+              "
             >
 
               <td
                 class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
               >
-                {{ formatDate(payment.payment_date) }}
+
+                {{
+                  formatDate(
+                    payment.payment_date
+                  )
+                }}
+
               </td>
 
 
               <td
                 class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
               >
+
                 {{
                   formatPaymentMethod(
                     payment.payment_method
                   )
                 }}
+
               </td>
 
 
@@ -876,7 +1059,14 @@
               <td
                 class="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-green-700"
               >
-                RM {{ formatMoney(payment.amount) }}
+
+                RM
+                {{
+                  formatMoney(
+                    payment.amount
+                  )
+                }}
+
               </td>
 
             </tr>

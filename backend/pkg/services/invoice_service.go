@@ -1,10 +1,12 @@
 package services
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/shopspring/decimal"
 
 	"go-login-restapi/pkg/db"
@@ -51,10 +53,12 @@ type UpdateInvoiceInput struct {
 // InvoiceWithItems represents an invoice together with its items.
 type InvoiceWithItems struct {
 	models.Invoice
+
 	Items []InvoiceItemWithProduct `json:"items"`
 }
 
-// InvoiceItemWithProduct represents an invoice item with product information.
+// InvoiceItemWithProduct represents an invoice item
+// together with its product name.
 type InvoiceItemWithProduct struct {
 	models.InvoiceItem
 
@@ -69,12 +73,10 @@ func CreateInvoice(
 	input *CreateInvoiceInput,
 ) (*InvoiceWithItems, error) {
 
-	// --------------------------------------------------------
-	// Validate input
-	// --------------------------------------------------------
-
 	if input == nil {
-		return nil, fmt.Errorf("request body is required")
+		return nil, fmt.Errorf(
+			"request body is required",
+		)
 	}
 
 	// --------------------------------------------------------
@@ -82,16 +84,19 @@ func CreateInvoice(
 	// --------------------------------------------------------
 
 	if input.CustomerID <= 0 {
-		return nil, fmt.Errorf("customer id is required")
+		return nil, fmt.Errorf(
+			"customer id is required",
+		)
 	}
 
 	// --------------------------------------------------------
 	// Validate invoice number
 	// --------------------------------------------------------
 
-	input.InvoiceNumber = strings.TrimSpace(
-		input.InvoiceNumber,
-	)
+	input.InvoiceNumber =
+		strings.TrimSpace(
+			input.InvoiceNumber,
+		)
 
 	if input.InvoiceNumber == "" {
 		return nil, fmt.Errorf(
@@ -100,21 +105,26 @@ func CreateInvoice(
 	}
 
 	// --------------------------------------------------------
-	// Validate status
+	// New invoices must start as DRAFT
+	//
+	// ISSUED must happen through UpdateInvoice so stock
+	// can be deducted safely.
 	// --------------------------------------------------------
 
-	status := strings.ToUpper(
-		strings.TrimSpace(input.Status),
-	)
+	status :=
+		strings.ToUpper(
+			strings.TrimSpace(
+				input.Status,
+			),
+		)
 
 	if status == "" {
 		status = "DRAFT"
 	}
 
-	if !isValidInvoiceStatus(status) {
+	if status != "DRAFT" {
 		return nil, fmt.Errorf(
-			"invalid invoice status: %s",
-			status,
+			"new invoices must be created as DRAFT",
 		)
 	}
 
@@ -129,13 +139,14 @@ func CreateInvoice(
 	}
 
 	// --------------------------------------------------------
-	// Parse invoice-level discount
+	// Parse invoice discount
 	// --------------------------------------------------------
 
-	discount, err := parseMoney(
-		input.Discount,
-		"discount",
-	)
+	discount, err :=
+		parseMoney(
+			input.Discount,
+			"discount",
+		)
 
 	if err != nil {
 		return nil, err
@@ -148,13 +159,14 @@ func CreateInvoice(
 	}
 
 	// --------------------------------------------------------
-	// Parse invoice-level tax
+	// Parse tax
 	// --------------------------------------------------------
 
-	tax, err := parseMoney(
-		input.Tax,
-		"tax",
-	)
+	tax, err :=
+		parseMoney(
+			input.Tax,
+			"tax",
+		)
 
 	if err != nil {
 		return nil, err
@@ -170,7 +182,8 @@ func CreateInvoice(
 	// Start transaction
 	// --------------------------------------------------------
 
-	tx, err := db.DB.Beginx()
+	tx, err :=
+		db.DB.Beginx()
 
 	if err != nil {
 		return nil, err
@@ -207,13 +220,15 @@ func CreateInvoice(
 	}
 
 	// --------------------------------------------------------
-	// Determine invoice date
+	// Invoice date
 	// --------------------------------------------------------
 
-	invoiceDate := time.Now()
+	invoiceDate :=
+		time.Now()
 
 	if input.InvoiceDate != nil {
-		invoiceDate = *input.InvoiceDate
+		invoiceDate =
+			*input.InvoiceDate
 	}
 
 	// --------------------------------------------------------
@@ -221,7 +236,9 @@ func CreateInvoice(
 	// --------------------------------------------------------
 
 	if input.DueDate != nil &&
-		input.DueDate.Before(invoiceDate) {
+		input.DueDate.Before(
+			invoiceDate,
+		) {
 
 		return nil, fmt.Errorf(
 			"due date cannot be before invoice date",
@@ -229,20 +246,18 @@ func CreateInvoice(
 	}
 
 	// --------------------------------------------------------
-	// Calculate subtotal
+	// Build invoice items
 	// --------------------------------------------------------
 
-	subtotal := decimal.Zero
+	subtotal :=
+		decimal.Zero
 
-	items := make(
-		[]models.InvoiceItem,
-		0,
-		len(input.Items),
-	)
-
-	// --------------------------------------------------------
-	// Process invoice items
-	// --------------------------------------------------------
+	items :=
+		make(
+			[]models.InvoiceItem,
+			0,
+			len(input.Items),
+		)
 
 	for _, itemInput := range input.Items {
 
@@ -257,10 +272,6 @@ func CreateInvoice(
 				"quantity must be greater than zero",
 			)
 		}
-
-		// ----------------------------------------------------
-		// Get product
-		// ----------------------------------------------------
 
 		var product struct {
 			ID    int64  `db:"id"`
@@ -289,21 +300,24 @@ func CreateInvoice(
 		}
 
 		// ----------------------------------------------------
-		// Determine unit price
+		// Unit price
 		// ----------------------------------------------------
 
-		unitPriceString := strings.TrimSpace(
-			itemInput.UnitPrice,
-		)
+		unitPriceString :=
+			strings.TrimSpace(
+				itemInput.UnitPrice,
+			)
 
 		if unitPriceString == "" {
-			unitPriceString = product.Price
+			unitPriceString =
+				product.Price
 		}
 
-		unitPrice, err := parseMoney(
-			unitPriceString,
-			"unit price",
-		)
+		unitPrice, err :=
+			parseMoney(
+				unitPriceString,
+				"unit price",
+			)
 
 		if err != nil {
 			return nil, err
@@ -319,10 +333,11 @@ func CreateInvoice(
 		// Item discount
 		// ----------------------------------------------------
 
-		itemDiscount, err := parseMoney(
-			itemInput.Discount,
-			"item discount",
-		)
+		itemDiscount, err :=
+			parseMoney(
+				itemInput.Discount,
+				"item discount",
+			)
 
 		if err != nil {
 			return nil, err
@@ -334,19 +349,14 @@ func CreateInvoice(
 			)
 		}
 
-		// ----------------------------------------------------
-		// Calculate item subtotal
-		// ----------------------------------------------------
-
-		itemSubtotal := unitPrice.Mul(
-			decimal.NewFromInt(
-				int64(itemInput.Quantity),
-			),
-		)
-
-		// ----------------------------------------------------
-		// Validate item discount
-		// ----------------------------------------------------
+		itemSubtotal :=
+			unitPrice.Mul(
+				decimal.NewFromInt(
+					int64(
+						itemInput.Quantity,
+					),
+				),
+			)
 
 		if itemDiscount.GreaterThan(
 			itemSubtotal,
@@ -357,41 +367,41 @@ func CreateInvoice(
 			)
 		}
 
-		// ----------------------------------------------------
-		// Calculate item total
-		// ----------------------------------------------------
+		itemTotal :=
+			itemSubtotal.Sub(
+				itemDiscount,
+			)
 
-		itemTotal := itemSubtotal.Sub(
-			itemDiscount,
-		)
+		subtotal =
+			subtotal.Add(
+				itemTotal,
+			)
 
-		subtotal = subtotal.Add(
-			itemTotal,
-		)
+		items =
+			append(
+				items,
+				models.InvoiceItem{
+					ProductID: itemInput.ProductID,
 
-		// ----------------------------------------------------
-		// Build invoice item
-		// ----------------------------------------------------
+					Quantity: itemInput.Quantity,
 
-		items = append(
-			items,
-			models.InvoiceItem{
-				ProductID: itemInput.ProductID,
-				Quantity:  itemInput.Quantity,
-				UnitPrice: unitPrice.StringFixed(2),
-				Discount:  itemDiscount.StringFixed(2),
-				Total:     itemTotal.StringFixed(2),
-			},
-		)
+					UnitPrice: unitPrice.StringFixed(2),
+
+					Discount: itemDiscount.StringFixed(2),
+
+					Total: itemTotal.StringFixed(2),
+				},
+			)
 	}
 
 	// --------------------------------------------------------
-	// Calculate invoice total
+	// Final invoice total
 	// --------------------------------------------------------
 
-	total := subtotal.
-		Sub(discount).
-		Add(tax)
+	total :=
+		subtotal.
+			Sub(discount).
+			Add(tax)
 
 	if total.IsNegative() {
 		return nil, fmt.Errorf(
@@ -400,27 +410,34 @@ func CreateInvoice(
 	}
 
 	// --------------------------------------------------------
-	// Create invoice
-	// --------------------------------------------------------
-
-	invoice := &models.Invoice{
-		CustomerID:    input.CustomerID,
-		InvoiceNumber: input.InvoiceNumber,
-		InvoiceDate:   invoiceDate,
-		DueDate:       input.DueDate,
-		Status:        status,
-		Subtotal:      subtotal.StringFixed(2),
-		Discount:      discount.StringFixed(2),
-		Tax:           tax.StringFixed(2),
-		Total:         total.StringFixed(2),
-		Notes:         input.Notes,
-	}
-
-	// --------------------------------------------------------
 	// Save invoice
 	// --------------------------------------------------------
 
-	err = invoice.Save(tx)
+	invoice :=
+		&models.Invoice{
+			CustomerID: input.CustomerID,
+
+			InvoiceNumber: input.InvoiceNumber,
+
+			InvoiceDate: invoiceDate,
+
+			DueDate: input.DueDate,
+
+			Status: status,
+
+			Subtotal: subtotal.StringFixed(2),
+
+			Discount: discount.StringFixed(2),
+
+			Tax: tax.StringFixed(2),
+
+			Total: total.StringFixed(2),
+
+			Notes: input.Notes,
+		}
+
+	err =
+		invoice.Save(tx)
 
 	if err != nil {
 		return nil, err
@@ -432,9 +449,11 @@ func CreateInvoice(
 
 	for index := range items {
 
-		items[index].InvoiceID = invoice.ID
+		items[index].InvoiceID =
+			invoice.ID
 
-		err = items[index].Save(tx)
+		err =
+			items[index].Save(tx)
 
 		if err != nil {
 			return nil, err
@@ -442,61 +461,28 @@ func CreateInvoice(
 	}
 
 	// --------------------------------------------------------
-	// Commit transaction
+	// Commit
 	// --------------------------------------------------------
 
-	if err := tx.Commit(); err != nil {
+	if err :=
+		tx.Commit(); err != nil {
+
 		return nil, err
 	}
 
-	// --------------------------------------------------------
-	// Build response
-	// --------------------------------------------------------
-
-	response := &InvoiceWithItems{
-		Invoice: *invoice,
-		Items: make(
-			[]InvoiceItemWithProduct,
-			0,
-			len(items),
-		),
-	}
-
-	for _, item := range items {
-
-		var productName string
-
-		err := db.DB.Get(
-			&productName,
-			`
-			SELECT name
-			FROM products
-			WHERE id = $1
-			`,
-			item.ProductID,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		response.Items = append(
-			response.Items,
-			InvoiceItemWithProduct{
-				InvoiceItem: item,
-				ProductName: productName,
-			},
-		)
-	}
-
-	return response, nil
+	return GetInvoiceByID(
+		invoice.ID,
+	)
 }
 
 // ============================================================
 // Get All Invoices
 // ============================================================
 
-func GetInvoices() ([]InvoiceWithItems, error) {
+func GetInvoices() (
+	[]InvoiceWithItems,
+	error,
+) {
 
 	var invoices []models.Invoice
 
@@ -504,10 +490,15 @@ func GetInvoices() ([]InvoiceWithItems, error) {
 		SELECT
 			i.id,
 			i.customer_id,
+
 			COALESCE(
-				NULLIF(TRIM(c.display_name), ''),
+				NULLIF(
+					TRIM(c.display_name),
+					''
+				),
 				'-'
 			) AS customer_name,
+
 			i.invoice_number,
 			i.invoice_date,
 			i.due_date,
@@ -519,44 +510,52 @@ func GetInvoices() ([]InvoiceWithItems, error) {
 			i.notes,
 			i.created_at,
 			i.updated_at
+
 		FROM invoices i
+
 		LEFT JOIN customers c
 			ON c.id = i.customer_id
+
 		ORDER BY i.id DESC
 	`
 
-	err := db.DB.Select(
-		&invoices,
-		query,
-	)
+	err :=
+		db.DB.Select(
+			&invoices,
+			query,
+		)
 
 	if err != nil {
 		return nil, err
 	}
 
-	result := make(
-		[]InvoiceWithItems,
-		0,
-		len(invoices),
-	)
+	result :=
+		make(
+			[]InvoiceWithItems,
+			0,
+			len(invoices),
+		)
 
 	for _, invoice := range invoices {
 
-		items, err := getInvoiceItems(
-			invoice.ID,
-		)
+		items, err :=
+			getInvoiceItems(
+				invoice.ID,
+			)
 
 		if err != nil {
 			return nil, err
 		}
 
-		result = append(
-			result,
-			InvoiceWithItems{
-				Invoice: invoice,
-				Items:   items,
-			},
-		)
+		result =
+			append(
+				result,
+				InvoiceWithItems{
+					Invoice: invoice,
+
+					Items: items,
+				},
+			)
 	}
 
 	return result, nil
@@ -582,10 +581,15 @@ func GetInvoiceByID(
 		SELECT
 			i.id,
 			i.customer_id,
+
 			COALESCE(
-				NULLIF(TRIM(c.display_name), ''),
+				NULLIF(
+					TRIM(c.display_name),
+					''
+				),
 				'-'
 			) AS customer_name,
+
 			i.invoice_number,
 			i.invoice_date,
 			i.due_date,
@@ -597,27 +601,41 @@ func GetInvoiceByID(
 			i.notes,
 			i.created_at,
 			i.updated_at
+
 		FROM invoices i
+
 		LEFT JOIN customers c
 			ON c.id = i.customer_id
+
 		WHERE i.id = $1
 	`
 
-	err := db.DB.Get(
-		&invoice,
-		query,
-		id,
-	)
+	err :=
+		db.DB.Get(
+			&invoice,
+			query,
+			id,
+		)
 
 	if err != nil {
+
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf(
+				"invoice not found",
+			)
+		}
+
 		return nil, fmt.Errorf(
-			"invoice not found",
+			"failed to retrieve invoice %d: %w",
+			id,
+			err,
 		)
 	}
 
-	items, err := getInvoiceItems(
-		invoice.ID,
-	)
+	items, err :=
+		getInvoiceItems(
+			invoice.ID,
+		)
 
 	if err != nil {
 		return nil, err
@@ -625,7 +643,8 @@ func GetInvoiceByID(
 
 	return &InvoiceWithItems{
 		Invoice: invoice,
-		Items:   items,
+
+		Items: items,
 	}, nil
 }
 
@@ -649,21 +668,83 @@ func getInvoiceItems(
 			ii.discount,
 			ii.total,
 			p.name AS product_name
+
 		FROM invoice_items ii
+
 		INNER JOIN products p
 			ON p.id = ii.product_id
+
 		WHERE ii.invoice_id = $1
+
 		ORDER BY ii.id ASC
 	`
 
-	err := db.DB.Select(
-		&items,
-		query,
-		invoiceID,
-	)
+	err :=
+		db.DB.Select(
+			&items,
+			query,
+			invoiceID,
+		)
 
 	if err != nil {
 		return nil, err
+	}
+
+	if items == nil {
+		items =
+			[]InvoiceItemWithProduct{}
+	}
+
+	return items, nil
+}
+
+// ============================================================
+// Get Invoice Items Using Existing SQL Transaction
+//
+// This is particularly important for cancellation.
+// We want the ORIGINAL saved invoice quantities, not quantities
+// supplied by the frontend in the cancellation request.
+// ============================================================
+
+func getInvoiceItemsWithTx(
+	tx *sqlx.Tx,
+	invoiceID int64,
+) ([]models.InvoiceItem, error) {
+
+	if tx == nil {
+		return nil, fmt.Errorf(
+			"database transaction is required",
+		)
+	}
+
+	var items []models.InvoiceItem
+
+	err :=
+		tx.Select(
+			&items,
+			`
+			SELECT
+				id,
+				invoice_id,
+				product_id,
+				quantity,
+				unit_price,
+				discount,
+				total
+			FROM invoice_items
+			WHERE invoice_id = $1
+			ORDER BY id ASC
+			`,
+			invoiceID,
+		)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if items == nil {
+		items =
+			[]models.InvoiceItem{}
 	}
 
 	return items, nil
@@ -678,10 +759,6 @@ func UpdateInvoice(
 	input *UpdateInvoiceInput,
 ) (*InvoiceWithItems, error) {
 
-	// --------------------------------------------------------
-	// Validate invoice ID
-	// --------------------------------------------------------
-
 	if id <= 0 {
 		return nil, fmt.Errorf(
 			"invalid invoice id",
@@ -691,6 +768,240 @@ func UpdateInvoice(
 	if input == nil {
 		return nil, fmt.Errorf(
 			"request body is required",
+		)
+	}
+
+	// --------------------------------------------------------
+	// Status is required for any update
+	// --------------------------------------------------------
+
+	status :=
+		strings.ToUpper(
+			strings.TrimSpace(
+				input.Status,
+			),
+		)
+
+	if status == "" {
+		return nil, fmt.Errorf(
+			"invoice status is required",
+		)
+	}
+
+	if !isValidInvoiceStatus(
+		status,
+	) {
+
+		return nil, fmt.Errorf(
+			"invalid invoice status: %s",
+			status,
+		)
+	}
+
+	// --------------------------------------------------------
+	// Start transaction
+	// --------------------------------------------------------
+
+	tx, err :=
+		db.DB.Beginx()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	// --------------------------------------------------------
+	// Load and lock existing invoice
+	// --------------------------------------------------------
+
+	var existingInvoice models.Invoice
+
+	err =
+		tx.Get(
+			&existingInvoice,
+			`
+			SELECT
+				id,
+				customer_id,
+				invoice_number,
+				invoice_date,
+				due_date,
+				status,
+				subtotal,
+				discount,
+				tax,
+				total,
+				notes,
+				created_at,
+				updated_at
+			FROM invoices
+			WHERE id = $1
+			FOR UPDATE
+			`,
+			id,
+		)
+
+	if err != nil {
+
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf(
+				"invoice not found",
+			)
+		}
+
+		return nil, fmt.Errorf(
+			"failed to retrieve invoice %d: %w",
+			id,
+			err,
+		)
+	}
+
+	existingStatus :=
+		strings.ToUpper(
+			strings.TrimSpace(
+				existingInvoice.Status,
+			),
+		)
+
+	// ========================================================
+	// ISSUED invoice
+	//
+	// An issued invoice is read-only.
+	// The ONLY allowed action is cancellation.
+	//
+	// We intentionally handle this before validating customer,
+	// items, discount, tax, etc.
+	//
+	// This allows the frontend to submit:
+	//
+	// {
+	//     "status": "CANCELLED"
+	// }
+	//
+	// without sending the entire invoice again.
+	// ========================================================
+
+	if existingStatus == "ISSUED" {
+
+		if status != "CANCELLED" {
+
+			return nil, fmt.Errorf(
+				"ISSUED invoice is locked and can only be cancelled",
+			)
+		}
+
+		// ----------------------------------------------------
+		// Read ORIGINAL saved invoice items
+		// ----------------------------------------------------
+
+		existingItems, err :=
+			getInvoiceItemsWithTx(
+				tx,
+				id,
+			)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if len(existingItems) == 0 {
+			return nil, fmt.Errorf(
+				"invoice has no items",
+			)
+		}
+
+		// ----------------------------------------------------
+		// Restore stock using ORIGINAL quantities
+		// ----------------------------------------------------
+
+		err =
+			restoreInvoiceStock(
+				tx,
+				id,
+				existingItems,
+			)
+
+		if err != nil {
+
+			return nil, fmt.Errorf(
+				"failed to cancel invoice: %w",
+				err,
+			)
+		}
+
+		// ----------------------------------------------------
+		// Change status only
+		//
+		// Customer, dates, items, price, tax, discount etc.
+		// remain untouched.
+		// ----------------------------------------------------
+
+		_, err =
+			tx.Exec(
+				`
+				UPDATE invoices
+				SET
+					status = 'CANCELLED',
+					updated_at = CURRENT_TIMESTAMP
+				WHERE id = $1
+				`,
+				id,
+			)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if err :=
+			tx.Commit(); err != nil {
+
+			return nil, err
+		}
+
+		return GetInvoiceByID(
+			id,
+		)
+	}
+
+	// ========================================================
+	// Protected statuses
+	// ========================================================
+
+	if existingStatus == "PARTIAL" ||
+		existingStatus == "PAID" ||
+		existingStatus == "CANCELLED" {
+
+		return nil, fmt.Errorf(
+			"cannot update a %s invoice",
+			existingStatus,
+		)
+	}
+
+	// ========================================================
+	// From this point onwards only DRAFT invoices are editable
+	// ========================================================
+
+	if existingStatus != "DRAFT" {
+
+		return nil, fmt.Errorf(
+			"unsupported invoice status: %s",
+			existingStatus,
+		)
+	}
+
+	// --------------------------------------------------------
+	// DRAFT may remain DRAFT, become ISSUED,
+	// or become CANCELLED.
+	// --------------------------------------------------------
+
+	if status != "DRAFT" &&
+		status != "ISSUED" &&
+		status != "CANCELLED" {
+
+		return nil, fmt.Errorf(
+			"cannot change invoice status from DRAFT to %s",
+			status,
 		)
 	}
 
@@ -705,41 +1016,80 @@ func UpdateInvoice(
 	}
 
 	// --------------------------------------------------------
-	// Validate requested status
-	// --------------------------------------------------------
-
-	status :=
-		strings.ToUpper(
-			strings.TrimSpace(
-				input.Status,
-			),
-		)
-
-	if status == "" {
-		status = "DRAFT"
-	}
-
-	if !isValidInvoiceStatus(status) {
-
-		return nil, fmt.Errorf(
-			"invalid invoice status: %s",
-			status,
-		)
-	}
-
-	// --------------------------------------------------------
-	// Validate invoice items
+	// Validate items
 	// --------------------------------------------------------
 
 	if len(input.Items) == 0 {
-
 		return nil, fmt.Errorf(
 			"invoice must contain at least one item",
 		)
 	}
 
 	// --------------------------------------------------------
-	// Parse invoice discount
+	// Validate customer exists
+	// --------------------------------------------------------
+
+	var customerExists bool
+
+	err =
+		tx.Get(
+			&customerExists,
+			`
+			SELECT EXISTS (
+				SELECT 1
+				FROM customers
+				WHERE id = $1
+			)
+			`,
+			input.CustomerID,
+		)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !customerExists {
+		return nil, fmt.Errorf(
+			"customer not found",
+		)
+	}
+
+	// --------------------------------------------------------
+	// Invoice date
+	// --------------------------------------------------------
+
+	invoiceDate :=
+		existingInvoice.InvoiceDate
+
+	if input.InvoiceDate != nil {
+		invoiceDate =
+			*input.InvoiceDate
+	}
+
+	// --------------------------------------------------------
+	// Due date
+	// --------------------------------------------------------
+
+	dueDate :=
+		existingInvoice.DueDate
+
+	if input.DueDate != nil {
+		dueDate =
+			input.DueDate
+	}
+
+	if dueDate != nil &&
+		dueDate.Before(
+			invoiceDate,
+		) {
+
+		return nil, fmt.Errorf(
+			"due date cannot be before invoice date",
+		)
+	}
+
+	// --------------------------------------------------------
+	// Invoice discount
 	// --------------------------------------------------------
 
 	discount, err :=
@@ -753,14 +1103,13 @@ func UpdateInvoice(
 	}
 
 	if discount.IsNegative() {
-
 		return nil, fmt.Errorf(
 			"discount cannot be negative",
 		)
 	}
 
 	// --------------------------------------------------------
-	// Parse invoice tax
+	// Tax
 	// --------------------------------------------------------
 
 	tax, err :=
@@ -774,193 +1123,13 @@ func UpdateInvoice(
 	}
 
 	if tax.IsNegative() {
-
 		return nil, fmt.Errorf(
 			"tax cannot be negative",
 		)
 	}
 
 	// --------------------------------------------------------
-	// Start database transaction
-	// --------------------------------------------------------
-
-	tx, err :=
-		db.DB.Beginx()
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	// --------------------------------------------------------
-	// Load existing invoice and lock it
-	// --------------------------------------------------------
-
-	var existingInvoice models.Invoice
-
-	err = tx.Get(
-		&existingInvoice,
-		`
-		SELECT
-			id,
-			customer_id,
-			invoice_number,
-			invoice_date,
-			due_date,
-			status,
-			subtotal,
-			discount,
-			tax,
-			total,
-			notes,
-			created_at,
-			updated_at
-		FROM invoices
-		WHERE id = $1
-		FOR UPDATE
-		`,
-		id,
-	)
-
-	if err != nil {
-
-		return nil, fmt.Errorf(
-			"invoice not found",
-		)
-	}
-
-	existingStatus :=
-		strings.ToUpper(
-			strings.TrimSpace(
-				existingInvoice.Status,
-			),
-		)
-
-	// --------------------------------------------------------
-	// Prevent modification of protected invoices
-	// --------------------------------------------------------
-
-	if existingStatus == "PARTIAL" ||
-		existingStatus == "PAID" ||
-		existingStatus == "CANCELLED" {
-
-		return nil, fmt.Errorf(
-			"cannot update a %s invoice",
-			existingStatus,
-		)
-	}
-
-	// --------------------------------------------------------
-	// Validate allowed status transitions
-	// --------------------------------------------------------
-
-	switch existingStatus {
-
-	case "DRAFT":
-
-		if status != "DRAFT" &&
-			status != "ISSUED" &&
-			status != "CANCELLED" {
-
-			return nil, fmt.Errorf(
-				"cannot change invoice status from %s to %s",
-				existingStatus,
-				status,
-			)
-		}
-
-	case "ISSUED":
-
-		if status != "ISSUED" &&
-			status != "CANCELLED" {
-
-			return nil, fmt.Errorf(
-				"cannot change invoice status from %s to %s",
-				existingStatus,
-				status,
-			)
-		}
-
-	default:
-
-		return nil, fmt.Errorf(
-			"unsupported invoice status: %s",
-			existingStatus,
-		)
-	}
-
-	// --------------------------------------------------------
-	// Verify customer exists
-	// --------------------------------------------------------
-
-	var customerExists bool
-
-	err = tx.Get(
-		&customerExists,
-		`
-		SELECT EXISTS (
-			SELECT 1
-			FROM customers
-			WHERE id = $1
-		)
-		`,
-		input.CustomerID,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if !customerExists {
-
-		return nil, fmt.Errorf(
-			"customer not found",
-		)
-	}
-
-	// --------------------------------------------------------
-	// Determine invoice date
-	// --------------------------------------------------------
-
-	invoiceDate :=
-		existingInvoice.InvoiceDate
-
-	if input.InvoiceDate != nil {
-
-		invoiceDate =
-			*input.InvoiceDate
-	}
-
-	// --------------------------------------------------------
-	// Determine due date
-	// --------------------------------------------------------
-
-	dueDate :=
-		existingInvoice.DueDate
-
-	if input.DueDate != nil {
-
-		dueDate =
-			input.DueDate
-	}
-
-	// --------------------------------------------------------
-	// Validate due date
-	// --------------------------------------------------------
-
-	if dueDate != nil &&
-		dueDate.Before(
-			invoiceDate,
-		) {
-
-		return nil, fmt.Errorf(
-			"due date cannot be before invoice date",
-		)
-	}
-
-	// --------------------------------------------------------
-	// Build new invoice items and calculate subtotal
+	// Build updated invoice items
 	// --------------------------------------------------------
 
 	subtotal :=
@@ -975,20 +1144,12 @@ func UpdateInvoice(
 
 	for _, itemInput := range input.Items {
 
-		// ----------------------------------------------------
-		// Validate product
-		// ----------------------------------------------------
-
 		if itemInput.ProductID <= 0 {
 
 			return nil, fmt.Errorf(
 				"product id is required",
 			)
 		}
-
-		// ----------------------------------------------------
-		// Validate quantity
-		// ----------------------------------------------------
 
 		if itemInput.Quantity <= 0 {
 
@@ -997,30 +1158,25 @@ func UpdateInvoice(
 			)
 		}
 
-		// ----------------------------------------------------
-		// Load product
-		// ----------------------------------------------------
-
 		var product struct {
-			ID int64 `db:"id"`
-
-			Name string `db:"name"`
-
+			ID    int64  `db:"id"`
+			Name  string `db:"name"`
 			Price string `db:"price"`
 		}
 
-		err = tx.Get(
-			&product,
-			`
-			SELECT
-				id,
-				name,
-				price
-			FROM products
-			WHERE id = $1
-			`,
-			itemInput.ProductID,
-		)
+		err =
+			tx.Get(
+				&product,
+				`
+				SELECT
+					id,
+					name,
+					price
+				FROM products
+				WHERE id = $1
+				`,
+				itemInput.ProductID,
+			)
 
 		if err != nil {
 
@@ -1031,7 +1187,7 @@ func UpdateInvoice(
 		}
 
 		// ----------------------------------------------------
-		// Determine unit price
+		// Unit price
 		// ----------------------------------------------------
 
 		unitPriceString :=
@@ -1040,7 +1196,6 @@ func UpdateInvoice(
 			)
 
 		if unitPriceString == "" {
-
 			unitPriceString =
 				product.Price
 		}
@@ -1063,7 +1218,7 @@ func UpdateInvoice(
 		}
 
 		// ----------------------------------------------------
-		// Parse item discount
+		// Item discount
 		// ----------------------------------------------------
 
 		itemDiscount, err :=
@@ -1083,10 +1238,6 @@ func UpdateInvoice(
 			)
 		}
 
-		// ----------------------------------------------------
-		// Calculate item subtotal
-		// ----------------------------------------------------
-
 		itemSubtotal :=
 			unitPrice.Mul(
 				decimal.NewFromInt(
@@ -1096,10 +1247,6 @@ func UpdateInvoice(
 				),
 			)
 
-		// ----------------------------------------------------
-		// Validate item discount
-		// ----------------------------------------------------
-
 		if itemDiscount.GreaterThan(
 			itemSubtotal,
 		) {
@@ -1108,10 +1255,6 @@ func UpdateInvoice(
 				"item discount cannot exceed item subtotal",
 			)
 		}
-
-		// ----------------------------------------------------
-		// Calculate final item total
-		// ----------------------------------------------------
 
 		itemTotal :=
 			itemSubtotal.Sub(
@@ -1123,15 +1266,10 @@ func UpdateInvoice(
 				itemTotal,
 			)
 
-		// ----------------------------------------------------
-		// Build invoice item model
-		// ----------------------------------------------------
-
 		items =
 			append(
 				items,
 				models.InvoiceItem{
-
 					InvoiceID: id,
 
 					ProductID: itemInput.ProductID,
@@ -1148,7 +1286,7 @@ func UpdateInvoice(
 	}
 
 	// --------------------------------------------------------
-	// Calculate final invoice total
+	// Final total
 	// --------------------------------------------------------
 
 	total :=
@@ -1163,37 +1301,13 @@ func UpdateInvoice(
 		)
 	}
 
-	// ========================================================
-	// Determine Stock Movement
-	// ========================================================
-
 	// --------------------------------------------------------
 	// DRAFT -> ISSUED
 	//
-	// Stock needs to be removed.
+	// Deduct stock exactly once.
 	// --------------------------------------------------------
 
-	shouldDeductStock :=
-		existingStatus == "DRAFT" &&
-			status == "ISSUED"
-
-	// --------------------------------------------------------
-	// ISSUED -> CANCELLED
-	//
-	// Stock needs to be returned.
-	// --------------------------------------------------------
-
-	shouldRestoreStock :=
-		existingStatus == "ISSUED" &&
-			status == "CANCELLED"
-
-	// --------------------------------------------------------
-	// Deduct stock before updating invoice
-	//
-	// Everything is using the same database transaction.
-	// --------------------------------------------------------
-
-	if shouldDeductStock {
+	if status == "ISSUED" {
 
 		err =
 			deductInvoiceStock(
@@ -1206,28 +1320,6 @@ func UpdateInvoice(
 
 			return nil, fmt.Errorf(
 				"failed to issue invoice: %w",
-				err,
-			)
-		}
-	}
-
-	// --------------------------------------------------------
-	// Restore stock when cancelling issued invoice
-	// --------------------------------------------------------
-
-	if shouldRestoreStock {
-
-		err =
-			restoreInvoiceStock(
-				tx,
-				id,
-				items,
-			)
-
-		if err != nil {
-
-			return nil, fmt.Errorf(
-				"failed to cancel invoice: %w",
 				err,
 			)
 		}
@@ -1271,7 +1363,7 @@ func UpdateInvoice(
 	}
 
 	// --------------------------------------------------------
-	// Delete existing invoice items
+	// Replace items
 	// --------------------------------------------------------
 
 	_, err =
@@ -1287,15 +1379,10 @@ func UpdateInvoice(
 		return nil, err
 	}
 
-	// --------------------------------------------------------
-	// Save updated invoice items
-	// --------------------------------------------------------
-
 	for index := range items {
 
 		err =
-			items[index].
-				Save(tx)
+			items[index].Save(tx)
 
 		if err != nil {
 			return nil, err
@@ -1303,7 +1390,7 @@ func UpdateInvoice(
 	}
 
 	// --------------------------------------------------------
-	// Commit invoice + items + stock movements
+	// Commit invoice + item + stock changes together
 	// --------------------------------------------------------
 
 	if err :=
@@ -1312,18 +1399,18 @@ func UpdateInvoice(
 		return nil, err
 	}
 
-	// --------------------------------------------------------
-	// Return updated invoice
-	// --------------------------------------------------------
-
-	return GetInvoiceByID(id)
+	return GetInvoiceByID(
+		id,
+	)
 }
 
 // ============================================================
 // Delete Invoice
 // ============================================================
 
-func DeleteInvoice(id int64) error {
+func DeleteInvoice(
+	id int64,
+) error {
 
 	if id <= 0 {
 		return fmt.Errorf(
@@ -1331,11 +1418,8 @@ func DeleteInvoice(id int64) error {
 		)
 	}
 
-	// --------------------------------------------------------
-	// Start transaction
-	// --------------------------------------------------------
-
-	tx, err := db.DB.Beginx()
+	tx, err :=
+		db.DB.Beginx()
 
 	if err != nil {
 		return err
@@ -1343,67 +1427,67 @@ func DeleteInvoice(id int64) error {
 
 	defer tx.Rollback()
 
-	// --------------------------------------------------------
-	// Get invoice status
-	// --------------------------------------------------------
-
 	var status string
 
-	err = tx.Get(
-		&status,
-		`
-		SELECT status
-		FROM invoices
-		WHERE id = $1
-		FOR UPDATE
-		`,
-		id,
-	)
+	err =
+		tx.Get(
+			&status,
+			`
+			SELECT status
+			FROM invoices
+			WHERE id = $1
+			FOR UPDATE
+			`,
+			id,
+		)
 
 	if err != nil {
-		return fmt.Errorf(
-			"invoice not found",
-		)
+
+		if err == sql.ErrNoRows {
+			return fmt.Errorf(
+				"invoice not found",
+			)
+		}
+
+		return err
 	}
 
-	// --------------------------------------------------------
-	// Prevent deleting paid/cancelled invoices
-	// --------------------------------------------------------
-
-	if status == "PARTIAL" ||
-		status == "PAID" ||
-		status == "CANCELLED" {
-
-		return fmt.Errorf(
-			"cannot delete a %s invoice",
-			status,
+	status =
+		strings.ToUpper(
+			strings.TrimSpace(
+				status,
+			),
 		)
-	}
 
 	// --------------------------------------------------------
-	// Delete invoice
+	// Only DRAFT invoices may be deleted.
 	//
-	// invoice_items should be automatically deleted because
-	// invoice_items.invoice_id uses ON DELETE CASCADE.
+	// Once stock/accounting activity exists, invoices should
+	// remain for audit purposes.
 	// --------------------------------------------------------
 
-	result, err := tx.Exec(
-		`
-		DELETE FROM invoices
-		WHERE id = $1
-		`,
-		id,
-	)
+	if status != "DRAFT" {
+
+		return fmt.Errorf(
+			"only DRAFT invoices can be deleted",
+		)
+	}
+
+	result, err :=
+		tx.Exec(
+			`
+			DELETE FROM invoices
+			WHERE id = $1
+			`,
+			id,
+		)
 
 	if err != nil {
 		return err
 	}
 
-	// --------------------------------------------------------
-	// Check affected rows
-	// --------------------------------------------------------
-
-	rowsAffected, err := result.RowsAffected()
+	rowsAffected, err :=
+		result.RowsAffected()
 
 	if err != nil {
 		return err
@@ -1415,11 +1499,9 @@ func DeleteInvoice(id int64) error {
 		)
 	}
 
-	// --------------------------------------------------------
-	// Commit
-	// --------------------------------------------------------
+	if err :=
+		tx.Commit(); err != nil {
 
-	if err := tx.Commit(); err != nil {
 		return err
 	}
 
@@ -1427,7 +1509,11 @@ func DeleteInvoice(id int64) error {
 }
 
 // ============================================================
-// Helper: Validate Invoice Status
+// Helper: Validate Manually Requested Invoice Status
+//
+// PARTIAL and PAID are intentionally NOT included here.
+//
+// They are controlled by payment_service.go.
 // ============================================================
 
 func isValidInvoiceStatus(
@@ -1459,15 +1545,22 @@ func parseMoney(
 	fieldName string,
 ) (decimal.Decimal, error) {
 
-	value = strings.TrimSpace(value)
+	value =
+		strings.TrimSpace(
+			value,
+		)
 
 	if value == "" {
 		return decimal.Zero, nil
 	}
 
-	result, err := decimal.NewFromString(value)
+	result, err :=
+		decimal.NewFromString(
+			value,
+		)
 
 	if err != nil {
+
 		return decimal.Zero, fmt.Errorf(
 			"invalid %s: %s",
 			fieldName,
@@ -1475,9 +1568,8 @@ func parseMoney(
 		)
 	}
 
-	// The database uses two decimal places.
-	// Reject values with more than two decimal places.
 	if result.Exponent() < -2 {
+
 		return decimal.Zero, fmt.Errorf(
 			"%s cannot have more than 2 decimal places",
 			fieldName,
