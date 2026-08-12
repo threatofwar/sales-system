@@ -4,7 +4,9 @@
   <!-- Header -->
   <!-- ====================================================== -->
 
-  <div class="flex items-center justify-between mb-6">
+  <div
+    class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+  >
 
     <div>
 
@@ -12,7 +14,7 @@
         Invoices
       </h1>
 
-      <p class="text-sm text-gray-500 mt-1">
+      <p class="mt-1 text-sm text-gray-500">
         Manage your customer invoices
       </p>
 
@@ -22,11 +24,9 @@
     <button
       type="button"
       (click)="createInvoice()"
-      class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+      class="w-fit rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
     >
-
       + Create Invoice
-
     </button>
 
   </div>
@@ -38,10 +38,27 @@
 
   <div
     *ngIf="errorMessage"
-    class="mb-4 p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg"
+    class="mb-4 rounded-lg border border-red-300 bg-red-100 p-4 text-red-700"
   >
 
-    {{ errorMessage }}
+    <div
+      class="flex items-start justify-between gap-4"
+    >
+
+      <span>
+        {{ errorMessage }}
+      </span>
+
+
+      <button
+        type="button"
+        (click)="errorMessage = ''"
+        class="font-semibold text-red-700 hover:text-red-900"
+      >
+        ×
+      </button>
+
+    </div>
 
   </div>
 
@@ -52,26 +69,101 @@
 
   <div
     *ngIf="loading"
-    class="flex justify-center items-center py-12"
+    class="flex items-center justify-center py-12"
   >
 
     <div class="text-gray-500">
-
       Loading invoices...
-
     </div>
 
   </div>
 
 
   <!-- ====================================================== -->
-  <!-- Invoice table -->
+  <!-- Invoice content -->
   <!-- ====================================================== -->
 
   <div
     *ngIf="!loading"
-    class="bg-white rounded-lg shadow overflow-hidden"
+    class="overflow-hidden rounded-lg bg-white shadow"
   >
+
+    <!-- ==================================================== -->
+    <!-- Table Toolbar -->
+    <!-- ==================================================== -->
+
+    <div
+      *ngIf="totalInvoices > 0"
+      class="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+    >
+
+      <!-- Result count -->
+      <div class="text-sm text-gray-600">
+
+        Showing
+
+        <span class="font-semibold text-gray-900">
+          {{ getFirstRecordNumber() }}
+        </span>
+
+        –
+
+        <span class="font-semibold text-gray-900">
+          {{ getLastRecordNumber() }}
+        </span>
+
+        of
+
+        <span class="font-semibold text-gray-900">
+          {{ totalInvoices }}
+        </span>
+
+        invoices
+
+      </div>
+
+
+      <!-- Page size -->
+      <div
+        class="flex items-center gap-2"
+      >
+
+        <label
+          for="invoicePageSize"
+          class="text-sm text-gray-600"
+        >
+          Rows per page
+        </label>
+
+        <select
+          id="invoicePageSize"
+          [value]="pageSize"
+          (change)="changePageSize(+$any($event.target).value)"
+          class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+        >
+
+          <option value="10">
+            10
+          </option>
+
+          <option value="20">
+            20
+          </option>
+
+          <option value="50">
+            50
+          </option>
+
+          <option value="100">
+            100
+          </option>
+
+        </select>
+
+      </div>
+
+    </div>
+
 
     <!-- ==================================================== -->
     <!-- Empty state -->
@@ -79,10 +171,10 @@
 
     <div
       *ngIf="invoices.length === 0"
-      class="text-center py-12"
+      class="py-12 text-center"
     >
 
-      <div class="text-gray-400 text-5xl mb-4">
+      <div class="mb-4 text-5xl text-gray-400">
         📄
       </div>
 
@@ -90,18 +182,16 @@
         No invoices found
       </h2>
 
-      <p class="text-sm text-gray-500 mt-1">
+      <p class="mt-1 text-sm text-gray-500">
         Create your first invoice to get started.
       </p>
 
       <button
         type="button"
         (click)="createInvoice()"
-        class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
       >
-
         Create Invoice
-
       </button>
 
     </div>
@@ -129,43 +219,43 @@
           <tr>
 
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
             >
               Invoice
             </th>
 
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
             >
               Customer
             </th>
 
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
             >
               Invoice Date
             </th>
 
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
             >
               Due Date
             </th>
 
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
             >
               Status
             </th>
 
             <th
-              class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
             >
               Total
             </th>
 
             <th
-              class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
             >
               Actions
             </th>
@@ -180,7 +270,7 @@
         <!-- ================================================== -->
 
         <tbody
-          class="bg-white divide-y divide-gray-200"
+          class="divide-y divide-gray-200 bg-white"
         >
 
           <tr
@@ -191,60 +281,62 @@
             class="hover:bg-gray-50"
           >
 
-            <!-- ============================================ -->
             <!-- Invoice number -->
-            <!-- ============================================ -->
-
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td
+              class="whitespace-nowrap px-6 py-4"
+            >
 
               <button
                 type="button"
                 (click)="viewInvoice(invoice)"
-                class="text-blue-600 font-medium hover:text-blue-800 hover:underline"
+                class="font-medium text-blue-600 hover:text-blue-800 hover:underline"
               >
-
                 {{ invoice.invoice_number }}
-
               </button>
 
             </td>
 
 
-            <!-- ============================================ -->
             <!-- Customer -->
-            <!-- ============================================ -->
+            <td
+              class="whitespace-nowrap px-6 py-4"
+            >
 
-            <td class="px-6 py-4 whitespace-nowrap">
+              <div
+                class="text-sm text-gray-900"
+              >
 
-              <div class="text-sm text-gray-900">
-
-                {{ invoice.customer_name || ('Customer #' + invoice.customer_id) }}
+                {{
+                  invoice.customer_name ||
+                  (
+                    'Customer #' +
+                    invoice.customer_id
+                  )
+                }}
 
               </div>
 
             </td>
 
 
-            <!-- ============================================ -->
             <!-- Invoice date -->
-            <!-- ============================================ -->
+            <td
+              class="whitespace-nowrap px-6 py-4"
+            >
 
-            <td class="px-6 py-4 whitespace-nowrap">
-
-              <div class="text-sm text-gray-700">
-
+              <div
+                class="text-sm text-gray-700"
+              >
                 {{ formatDate(invoice.invoice_date) }}
-
               </div>
 
             </td>
 
 
-            <!-- ============================================ -->
             <!-- Due date -->
-            <!-- ============================================ -->
-
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td
+              class="whitespace-nowrap px-6 py-4"
+            >
 
               <div
                 class="text-sm"
@@ -263,98 +355,90 @@
             </td>
 
 
-            <!-- ============================================ -->
             <!-- Status -->
-            <!-- ============================================ -->
-
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td
+              class="whitespace-nowrap px-6 py-4"
+            >
 
               <span
-                class="inline-flex px-2.5 py-1 text-xs font-semibold rounded-full"
+                class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
                 [ngClass]="getStatusClass(invoice.status)"
               >
-
                 {{ invoice.status }}
-
               </span>
 
             </td>
 
 
-            <!-- ============================================ -->
             <!-- Total -->
-            <!-- ============================================ -->
+            <td
+              class="whitespace-nowrap px-6 py-4 text-right"
+            >
 
-            <td class="px-6 py-4 whitespace-nowrap text-right">
-
-              <div class="text-sm font-semibold text-gray-900">
-
+              <div
+                class="text-sm font-semibold text-gray-900"
+              >
                 {{ formatMoney(invoice.total) }}
-
               </div>
 
             </td>
 
 
-            <!-- ============================================ -->
             <!-- Actions -->
-            <!-- ============================================ -->
+            <td
+              class="whitespace-nowrap px-6 py-4 text-right"
+            >
 
-            <td class="px-6 py-4 whitespace-nowrap text-right">
-
-              <div class="flex justify-end gap-2">
+              <div
+                class="flex justify-end gap-2"
+              >
 
                 <!-- View -->
-
                 <button
                   type="button"
                   (click)="viewInvoice(invoice)"
-                  class="px-3 py-1.5 text-sm text-blue-600 border border-blue-200 rounded hover:bg-blue-50"
+                  class="rounded border border-blue-200 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50"
                 >
-
                   View
-
                 </button>
 
 
                 <!-- Edit -->
-
                 <button
                   type="button"
                   (click)="editInvoice(invoice)"
-                  [disabled]="
-                    invoice.status === 'PAID' ||
-                    invoice.status === 'CANCELLED'
-                  "
-                  class="px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  [disabled]="!canEditInvoice(invoice)"
+                  class="rounded border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-
                   Edit
-
                 </button>
 
 
                 <!-- Delete -->
-
                 <button
                   type="button"
                   (click)="deleteInvoice(invoice)"
                   [disabled]="
                     deletingInvoiceId === invoice.id ||
-                    invoice.status === 'PAID' ||
-                    invoice.status === 'CANCELLED'
+                    !canDeleteInvoice(invoice)
                   "
-                  class="px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  class="rounded border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
 
                   <span
-                    *ngIf="deletingInvoiceId !== invoice.id"
+                    *ngIf="
+                      deletingInvoiceId !==
+                      invoice.id
+                    "
                   >
                     Delete
                   </span>
 
                   <span
-                    *ngIf="deletingInvoiceId === invoice.id"
+                    *ngIf="
+                      deletingInvoiceId ===
+                      invoice.id
+                    "
                   >
                     Deleting...
                   </span>
@@ -370,6 +454,94 @@
         </tbody>
 
       </table>
+
+    </div>
+
+
+    <!-- ==================================================== -->
+    <!-- Pagination -->
+    <!-- ==================================================== -->
+
+    <div
+      *ngIf="
+        totalInvoices > 0 &&
+        totalPages > 0
+      "
+      class="flex flex-col gap-4 border-t border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+    >
+
+      <!-- Page text -->
+      <div
+        class="text-sm text-gray-600"
+      >
+
+        Page
+
+        <span class="font-semibold text-gray-900">
+          {{ currentPage }}
+        </span>
+
+        of
+
+        <span class="font-semibold text-gray-900">
+          {{ totalPages }}
+        </span>
+
+      </div>
+
+
+      <!-- Controls -->
+      <div
+        class="flex flex-wrap items-center gap-2"
+      >
+
+        <!-- Previous -->
+        <button
+          type="button"
+          (click)="previousPage()"
+          [disabled]="
+            currentPage <= 1 ||
+            loading
+          "
+          class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Previous
+        </button>
+
+
+        <!-- Page numbers -->
+        <button
+          *ngFor="
+            let page of getVisiblePages()
+          "
+          type="button"
+          (click)="goToPage(page)"
+          [disabled]="loading"
+          class="min-w-10 rounded-md border px-3 py-2 text-sm font-medium shadow-sm"
+          [ngClass]="
+            page === currentPage
+              ? 'border-blue-600 bg-blue-600 text-white'
+              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+          "
+        >
+          {{ page }}
+        </button>
+
+
+        <!-- Next -->
+        <button
+          type="button"
+          (click)="nextPage()"
+          [disabled]="
+            currentPage >= totalPages ||
+            loading
+          "
+          class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Next
+        </button>
+
+      </div>
 
     </div>
 

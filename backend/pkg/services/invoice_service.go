@@ -14,6 +14,22 @@ import (
 )
 
 // ============================================================
+// Pagination Structures
+// ============================================================
+
+type InvoicePagination struct {
+	Page       int   `json:"page"`
+	PageSize   int   `json:"page_size"`
+	Total      int64 `json:"total"`
+	TotalPages int   `json:"total_pages"`
+}
+
+type InvoiceListResponse struct {
+	Invoices   []models.Invoice  `json:"invoices"`
+	Pagination InvoicePagination `json:"pagination"`
+}
+
+// ============================================================
 // Request / Response Structures
 // ============================================================
 
@@ -479,10 +495,67 @@ func CreateInvoice(
 // Get All Invoices
 // ============================================================
 
-func GetInvoices() (
-	[]InvoiceWithItems,
-	error,
-) {
+func GetInvoices(
+	page int,
+	pageSize int,
+) (*InvoiceListResponse, error) {
+
+	// --------------------------------------------------------
+	// Safe defaults
+	// --------------------------------------------------------
+
+	if page <= 0 {
+		page = 1
+	}
+
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+
+	// Prevent very large requests.
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	// --------------------------------------------------------
+	// Count total invoices
+	// --------------------------------------------------------
+
+	var total int64
+
+	err := db.DB.Get(
+		&total,
+		`
+		SELECT COUNT(*)
+		FROM invoices
+		`,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to count invoices: %w",
+			err,
+		)
+	}
+
+	// --------------------------------------------------------
+	// Calculate offset
+	// --------------------------------------------------------
+
+	offset :=
+		(page - 1) *
+			pageSize
+
+	// --------------------------------------------------------
+	// Load only this page
+	//
+	// NOTE:
+	// We intentionally do NOT load invoice items here.
+	// The list page doesn't need them.
+	//
+	// GET /auth/invoice/:id remains responsible for
+	// loading full invoice details and items.
+	// --------------------------------------------------------
 
 	var invoices []models.Invoice
 
@@ -517,48 +590,65 @@ func GetInvoices() (
 			ON c.id = i.customer_id
 
 		ORDER BY i.id DESC
+
+		LIMIT $1
+		OFFSET $2
 	`
 
-	err :=
-		db.DB.Select(
-			&invoices,
-			query,
-		)
+	err = db.DB.Select(
+		&invoices,
+		query,
+		pageSize,
+		offset,
+	)
 
 	if err != nil {
-		return nil, err
-	}
-
-	result :=
-		make(
-			[]InvoiceWithItems,
-			0,
-			len(invoices),
+		return nil, fmt.Errorf(
+			"failed to retrieve invoices: %w",
+			err,
 		)
+	}
 
-	for _, invoice := range invoices {
+	if invoices == nil {
+		invoices =
+			[]models.Invoice{}
+	}
 
-		items, err :=
-			getInvoiceItems(
-				invoice.ID,
-			)
+	// --------------------------------------------------------
+	// Calculate total pages
+	// --------------------------------------------------------
 
-		if err != nil {
-			return nil, err
-		}
+	totalPages := 0
 
-		result =
-			append(
-				result,
-				InvoiceWithItems{
-					Invoice: invoice,
-
-					Items: items,
-				},
+	if total > 0 {
+		totalPages =
+			int(
+				(total +
+					int64(pageSize) -
+					1) /
+					int64(pageSize),
 			)
 	}
 
-	return result, nil
+	// --------------------------------------------------------
+	// Build response
+	// --------------------------------------------------------
+
+	return &InvoiceListResponse{
+
+		Invoices: invoices,
+
+		Pagination: InvoicePagination{
+
+			Page: page,
+
+			PageSize: pageSize,
+
+			Total: total,
+
+			TotalPages: totalPages,
+		},
+	}, nil
 }
 
 // ============================================================

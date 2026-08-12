@@ -52,25 +52,97 @@ func CreateInvoice(c *gin.Context) {
 // GetInvoices handles GET /auth/invoice
 func GetInvoices(c *gin.Context) {
 
-	invoices, err := services.GetInvoices()
+	// --------------------------------------------------------
+	// Default pagination
+	// --------------------------------------------------------
+
+	page := 1
+
+	pageSize := 20
+
+	// --------------------------------------------------------
+	// Parse page
+	// --------------------------------------------------------
+
+	if value :=
+		c.Query("page"); value != "" {
+
+		parsedPage, err :=
+			strconv.Atoi(value)
+
+		if err != nil ||
+			parsedPage <= 0 {
+
+			c.JSON(
+				http.StatusBadRequest,
+				gin.H{
+					"error": "page must be a positive integer",
+				},
+			)
+
+			return
+		}
+
+		page =
+			parsedPage
+	}
+
+	// --------------------------------------------------------
+	// Parse page_size
+	// --------------------------------------------------------
+
+	if value :=
+		c.Query("page_size"); value != "" {
+
+		parsedPageSize, err :=
+			strconv.Atoi(value)
+
+		if err != nil ||
+			parsedPageSize <= 0 {
+
+			c.JSON(
+				http.StatusBadRequest,
+				gin.H{
+					"error": "page_size must be a positive integer",
+				},
+			)
+
+			return
+		}
+
+		pageSize =
+			parsedPageSize
+	}
+
+	// --------------------------------------------------------
+	// Load paginated invoices
+	// --------------------------------------------------------
+
+	result, err :=
+		services.GetInvoices(
+			page,
+			pageSize,
+		)
 
 	if err != nil {
 
 		c.JSON(
 			http.StatusInternalServerError,
 			gin.H{
-				"error": "failed to retrieve invoices",
+				"error": err.Error(),
 			},
 		)
 
 		return
 	}
 
+	// --------------------------------------------------------
+	// Response
+	// --------------------------------------------------------
+
 	c.JSON(
 		http.StatusOK,
-		gin.H{
-			"invoices": invoices,
-		},
+		result,
 	)
 }
 

@@ -30,6 +30,19 @@ export class InvoiceComponent implements OnInit {
   deletingInvoiceId: number | null = null;
 
 
+  // ==========================================================
+  // Pagination
+  // ==========================================================
+
+  currentPage = 1;
+
+  pageSize = 20;
+
+  totalInvoices = 0;
+
+  totalPages = 0;
+
+
   constructor(
     private invoiceService: InvoiceService,
     private router: Router
@@ -47,14 +60,30 @@ export class InvoiceComponent implements OnInit {
   // Load invoices
   // ==========================================================
 
-  loadInvoices(): void {
+  loadInvoices(
+    page: number = this.currentPage
+  ): void {
+
+    if (page < 1) {
+      return;
+    }
+
+    if (
+      this.totalPages > 0 &&
+      page > this.totalPages
+    ) {
+      return;
+    }
 
     this.loading = true;
 
     this.errorMessage = '';
 
     this.invoiceService
-      .getInvoices()
+      .getInvoices(
+        page,
+        this.pageSize
+      )
       .subscribe({
 
         next: (response) => {
@@ -64,33 +93,20 @@ export class InvoiceComponent implements OnInit {
             response
           );
 
-          /*
-           * Your backend may return:
-           *
-           * [
-           *   {...},
-           *   {...}
-           * ]
-           *
-           * OR:
-           *
-           * {
-           *   "invoices": [...]
-           * }
-           *
-           * Handle both formats.
-           */
+          this.invoices =
+            response.invoices ?? [];
 
-          if (Array.isArray(response)) {
+          this.currentPage =
+            response.pagination.page;
 
-            this.invoices = response;
+          this.pageSize =
+            response.pagination.page_size;
 
-          } else {
+          this.totalInvoices =
+            response.pagination.total;
 
-            this.invoices =
-              response.invoices ?? [];
-
-          }
+          this.totalPages =
+            response.pagination.total_pages;
 
           this.loading = false;
 
@@ -113,6 +129,195 @@ export class InvoiceComponent implements OnInit {
         }
 
       });
+
+  }
+
+
+  // ==========================================================
+  // Pagination Navigation
+  // ==========================================================
+
+  previousPage(): void {
+
+    if (
+      this.currentPage <= 1 ||
+      this.loading
+    ) {
+      return;
+    }
+
+    this.loadInvoices(
+      this.currentPage - 1
+    );
+
+  }
+
+
+  nextPage(): void {
+
+    if (
+      this.currentPage >= this.totalPages ||
+      this.loading
+    ) {
+      return;
+    }
+
+    this.loadInvoices(
+      this.currentPage + 1
+    );
+
+  }
+
+
+  goToPage(
+    page: number
+  ): void {
+
+    if (
+      page < 1 ||
+      page > this.totalPages ||
+      page === this.currentPage ||
+      this.loading
+    ) {
+      return;
+    }
+
+    this.loadInvoices(
+      page
+    );
+
+  }
+
+
+  // ==========================================================
+  // Pagination Display Helpers
+  // ==========================================================
+
+  getFirstRecordNumber(): number {
+
+    if (
+      this.totalInvoices === 0
+    ) {
+      return 0;
+    }
+
+    return (
+      (
+        this.currentPage - 1
+      ) *
+      this.pageSize
+    ) + 1;
+
+  }
+
+
+  getLastRecordNumber(): number {
+
+    if (
+      this.totalInvoices === 0
+    ) {
+      return 0;
+    }
+
+    return Math.min(
+      this.currentPage *
+        this.pageSize,
+      this.totalInvoices
+    );
+
+  }
+
+
+  getVisiblePages(): number[] {
+
+    const pages: number[] = [];
+
+    if (
+      this.totalPages <= 0
+    ) {
+      return pages;
+    }
+
+    /*
+     * Show up to 5 page buttons.
+     *
+     * Example:
+     *
+     * 1 2 3 4 5
+     *
+     * or:
+     *
+     * 8 9 10 11 12
+     */
+
+    let startPage =
+      Math.max(
+        1,
+        this.currentPage - 2
+      );
+
+    let endPage =
+      Math.min(
+        this.totalPages,
+        startPage + 4
+      );
+
+    /*
+     * If we're near the final page,
+     * move the start backwards so that
+     * we still show up to 5 pages.
+     */
+    startPage =
+      Math.max(
+        1,
+        endPage - 4
+      );
+
+    for (
+      let page = startPage;
+      page <= endPage;
+      page++
+    ) {
+
+      pages.push(
+        page
+      );
+
+    }
+
+    return pages;
+
+  }
+
+
+  // ==========================================================
+  // Page Size
+  // ==========================================================
+
+  changePageSize(
+    pageSize: number
+  ): void {
+
+    if (
+      !Number.isInteger(pageSize) ||
+      pageSize <= 0
+    ) {
+      return;
+    }
+
+    this.pageSize =
+      pageSize;
+
+    /*
+     * Always return to page 1 when the
+     * number of rows per page changes.
+     */
+    this.currentPage =
+      1;
+
+    this.loadInvoices(
+      1
+    );
 
   }
 
@@ -162,11 +367,57 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
+    /*
+     * Only DRAFT invoices are editable.
+     */
+    if (
+      invoice.status
+        ?.toUpperCase() !==
+      'DRAFT'
+    ) {
+
+      return;
+    }
+
     this.router.navigate([
       '/invoice',
       invoice.id,
       'edit'
     ]);
+
+  }
+
+
+  // ==========================================================
+  // Can Edit
+  // ==========================================================
+
+  canEditInvoice(
+    invoice: Invoice
+  ): boolean {
+
+    return (
+      invoice.status
+        ?.toUpperCase() ===
+      'DRAFT'
+    );
+
+  }
+
+
+  // ==========================================================
+  // Can Delete
+  // ==========================================================
+
+  canDeleteInvoice(
+    invoice: Invoice
+  ): boolean {
+
+    return (
+      invoice.status
+        ?.toUpperCase() ===
+      'DRAFT'
+    );
 
   }
 
@@ -183,31 +434,29 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-
     /*
-     * Don't allow deletion of paid/cancelled invoices
-     * on the frontend.
+     * Only DRAFT invoices may be deleted.
      *
-     * The backend also validates this.
+     * The backend enforces the same rule.
      */
-
     if (
-      invoice.status === 'PAID' ||
-      invoice.status === 'CANCELLED'
+      !this.canDeleteInvoice(
+        invoice
+      )
     ) {
 
       alert(
-        `A ${invoice.status.toLowerCase()} invoice cannot be deleted.`
+        'Only DRAFT invoices can be deleted.'
       );
 
       return;
-
     }
 
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete invoice ${invoice.invoice_number}?`
-    );
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to delete invoice ${invoice.invoice_number}?`
+      );
 
 
     if (!confirmed) {
@@ -215,11 +464,14 @@ export class InvoiceComponent implements OnInit {
     }
 
 
-    this.deletingInvoiceId = invoice.id;
+    this.deletingInvoiceId =
+      invoice.id;
 
 
     this.invoiceService
-      .deleteInvoice(invoice.id)
+      .deleteInvoice(
+        invoice.id
+      )
       .subscribe({
 
         next: () => {
@@ -229,9 +481,29 @@ export class InvoiceComponent implements OnInit {
             invoice.id
           );
 
-          this.deletingInvoiceId = null;
+          this.deletingInvoiceId =
+            null;
 
-          this.loadInvoices();
+          /*
+           * If we deleted the only invoice
+           * on the current page, move to the
+           * previous page where appropriate.
+           */
+          if (
+            this.invoices.length === 1 &&
+            this.currentPage > 1
+          ) {
+
+            this.loadInvoices(
+              this.currentPage - 1
+            );
+
+            return;
+          }
+
+          this.loadInvoices(
+            this.currentPage
+          );
 
         },
 
@@ -247,7 +519,8 @@ export class InvoiceComponent implements OnInit {
             error?.error?.error ||
             'Failed to delete invoice.';
 
-          this.deletingInvoiceId = null;
+          this.deletingInvoiceId =
+            null;
 
         }
 
@@ -269,22 +542,28 @@ export class InvoiceComponent implements OnInit {
     }
 
 
-    const parsedDate = new Date(date);
+    const parsedDate =
+      new Date(date);
 
 
-    if (isNaN(parsedDate.getTime())) {
+    if (
+      isNaN(
+        parsedDate.getTime()
+      )
+    ) {
       return '-';
     }
 
 
-    return parsedDate.toLocaleDateString(
-      'en-MY',
-      {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      }
-    );
+    return parsedDate
+      .toLocaleDateString(
+        'en-MY',
+        {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        }
+      );
 
   }
 
@@ -297,23 +576,29 @@ export class InvoiceComponent implements OnInit {
     value?: string | number | null
   ): string {
 
-    const amount = Number(value ?? 0);
+    const amount =
+      Number(
+        value ?? 0
+      );
 
 
-    if (isNaN(amount)) {
+    if (
+      isNaN(amount)
+    ) {
       return 'RM 0.00';
     }
 
 
-    return amount.toLocaleString(
-      'en-MY',
-      {
-        style: 'currency',
-        currency: 'MYR',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }
-    );
+    return amount
+      .toLocaleString(
+        'en-MY',
+        {
+          style: 'currency',
+          currency: 'MYR',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }
+      );
 
   }
 
@@ -335,6 +620,9 @@ export class InvoiceComponent implements OnInit {
 
       case 'ISSUED':
         return 'status-issued';
+
+      case 'PARTIAL':
+        return 'status-partial';
 
       case 'PAID':
         return 'status-paid';
