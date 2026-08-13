@@ -1,8 +1,13 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpParams
+} from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-import { environment } from '../../../../environments/environment';
+import {
+  environment
+} from '../../../../environments/environment';
 
 
 // ============================================================
@@ -65,10 +70,10 @@ export interface Invoice {
   updated_at?: string;
 
   /*
-   * Items are optional because the paginated
-   * invoice list does not return invoice items.
+   * The paginated invoice list does not
+   * return invoice items.
    *
-   * GET /auth/invoice/:id returns the items.
+   * GET /auth/invoice/:id returns them.
    */
   items?: InvoiceItem[];
 
@@ -117,6 +122,25 @@ export interface InvoiceListResponse {
 
 
 // ============================================================
+// Invoice Sort Types
+// ============================================================
+
+export type InvoiceSortBy =
+  | 'created_at'
+  | 'invoice_number'
+  | 'customer'
+  | 'invoice_date'
+  | 'due_date'
+  | 'status'
+  | 'total';
+
+
+export type InvoiceSortOrder =
+  | 'asc'
+  | 'desc';
+
+
+// ============================================================
 // Invoice Service
 // ============================================================
 
@@ -124,7 +148,6 @@ export interface InvoiceListResponse {
   providedIn: 'root'
 })
 export class InvoiceService {
-
 
   private apiUrl =
     environment.apiUrl;
@@ -136,21 +159,19 @@ export class InvoiceService {
 
 
   // ==========================================================
-  // Get Paginated Invoices
+  // Get Paginated / Filtered / Sorted Invoices
   // ==========================================================
 
   getInvoices(
     page: number = 1,
-    pageSize: number = 20
+    pageSize: number = 20,
+    search: string = '',
+    status: string = '',
+    sortBy: InvoiceSortBy = 'created_at',
+    sortOrder: InvoiceSortOrder = 'desc'
   ): Observable<InvoiceListResponse> {
 
-
-    /*
-     * Build:
-     *
-     * ?page=1&page_size=20
-     */
-    const params =
+    let params =
       new HttpParams()
         .set(
           'page',
@@ -159,7 +180,54 @@ export class InvoiceService {
         .set(
           'page_size',
           pageSize.toString()
+        )
+        .set(
+          'sort_by',
+          sortBy
+        )
+        .set(
+          'sort_order',
+          sortOrder
         );
+
+
+    /*
+     * Only send search when something
+     * has actually been entered.
+     */
+    const cleanedSearch =
+      search.trim();
+
+    if (cleanedSearch) {
+
+      params =
+        params.set(
+          'search',
+          cleanedSearch
+        );
+
+    }
+
+
+    /*
+     * An empty status means:
+     *
+     * ALL statuses.
+     */
+    const cleanedStatus =
+      status
+        .trim()
+        .toUpperCase();
+
+    if (cleanedStatus) {
+
+      params =
+        params.set(
+          'status',
+          cleanedStatus
+        );
+
+    }
 
 
     return this.http.get<InvoiceListResponse>(
@@ -181,7 +249,10 @@ export class InvoiceService {
     id: number
   ): Observable<Invoice | InvoiceResponse> {
 
-    return this.http.get<Invoice | InvoiceResponse>(
+    return this.http.get<
+      Invoice |
+      InvoiceResponse
+    >(
       `${this.apiUrl}/auth/invoice/${id}`,
       {
         withCredentials: true

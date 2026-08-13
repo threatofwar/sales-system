@@ -14,7 +14,7 @@ import (
 )
 
 // ============================================================
-// Pagination Structures
+// Invoice List / Pagination Structures
 // ============================================================
 
 type InvoicePagination struct {
@@ -27,6 +27,22 @@ type InvoicePagination struct {
 type InvoiceListResponse struct {
 	Invoices   []models.Invoice  `json:"invoices"`
 	Pagination InvoicePagination `json:"pagination"`
+}
+
+// InvoiceListOptions controls invoice list searching,
+// filtering, sorting and pagination.
+type InvoiceListOptions struct {
+	Page int
+
+	PageSize int
+
+	Search string
+
+	Status string
+
+	SortBy string
+
+	SortOrder string
 }
 
 // ============================================================
@@ -122,9 +138,6 @@ func CreateInvoice(
 
 	// --------------------------------------------------------
 	// New invoices must start as DRAFT
-	//
-	// ISSUED must happen through UpdateInvoice so stock
-	// can be deducted safely.
 	// --------------------------------------------------------
 
 	status :=
@@ -493,45 +506,218 @@ func CreateInvoice(
 
 // ============================================================
 // Get All Invoices
+//
+// Supports:
+//
+// page
+// page_size
+// search
+// status
+// sort_by
+// sort_order
 // ============================================================
 
 func GetInvoices(
-	page int,
-	pageSize int,
+	options InvoiceListOptions,
 ) (*InvoiceListResponse, error) {
 
 	// --------------------------------------------------------
-	// Safe defaults
+	// Safe pagination defaults
 	// --------------------------------------------------------
 
-	if page <= 0 {
-		page = 1
+	if options.Page <= 0 {
+		options.Page = 1
 	}
 
-	if pageSize <= 0 {
-		pageSize = 20
+	if options.PageSize <= 0 {
+		options.PageSize = 20
 	}
 
-	// Prevent very large requests.
-	if pageSize > 100 {
-		pageSize = 100
+	if options.PageSize > 100 {
+		options.PageSize = 100
 	}
 
 	// --------------------------------------------------------
-	// Count total invoices
+	// Clean search
 	// --------------------------------------------------------
+
+	options.Search =
+		strings.TrimSpace(
+			options.Search,
+		)
+
+	// --------------------------------------------------------
+	// Clean and validate status filter
+	// --------------------------------------------------------
+
+	options.Status =
+		strings.ToUpper(
+			strings.TrimSpace(
+				options.Status,
+			),
+		)
+
+	if options.Status != "" &&
+		!isValidInvoiceFilterStatus(
+			options.Status,
+		) {
+
+		return nil, fmt.Errorf(
+			"invalid invoice status filter: %s",
+			options.Status,
+		)
+	}
+
+	// --------------------------------------------------------
+	// Validate / normalise sorting
+	// --------------------------------------------------------
+
+	sortColumn, err :=
+		getInvoiceSortColumn(
+			options.SortBy,
+		)
+
+	if err != nil {
+		return nil, err
+	}
+
+	sortOrder, err :=
+		getInvoiceSortOrder(
+			options.SortOrder,
+		)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// --------------------------------------------------------
+	// Build WHERE clause
+	// --------------------------------------------------------
+
+	whereClauses :=
+		[]string{}
+
+	args :=
+		[]interface{}{}
+
+	placeholder :=
+		1
+
+	// --------------------------------------------------------
+	// Search:
+	//
+	// invoice number
+	// customer display name
+	// --------------------------------------------------------
+
+	if options.Search != "" {
+
+		searchPlaceholder :=
+			fmt.Sprintf(
+				"$%d",
+				placeholder,
+			)
+
+		whereClauses =
+			append(
+				whereClauses,
+				fmt.Sprintf(
+					`
+					(
+						i.invoice_number ILIKE %s
+						OR
+						COALESCE(c.display_name, '') ILIKE %s
+					)
+					`,
+					searchPlaceholder,
+					searchPlaceholder,
+				),
+			)
+
+		args =
+			append(
+				args,
+				"%"+options.Search+"%",
+			)
+
+		placeholder++
+	}
+
+	// --------------------------------------------------------
+	// Status filter
+	// --------------------------------------------------------
+
+	if options.Status != "" {
+
+		whereClauses =
+			append(
+				whereClauses,
+				fmt.Sprintf(
+					"i.status = $%d",
+					placeholder,
+				),
+			)
+
+		args =
+			append(
+				args,
+				options.Status,
+			)
+
+		placeholder++
+	}
+
+	// --------------------------------------------------------
+	// Final WHERE
+	// --------------------------------------------------------
+
+	whereSQL :=
+		""
+
+	if len(whereClauses) > 0 {
+
+		whereSQL =
+			"WHERE " +
+				strings.Join(
+					whereClauses,
+					" AND ",
+				)
+	}
+
+	// ========================================================
+	// Count matching invoices
+	//
+	// IMPORTANT:
+	// Pagination total must represent the FILTERED result,
+	// not every invoice in the database.
+	// ========================================================
 
 	var total int64
 
-	err := db.DB.Get(
-		&total,
-		`
-		SELECT COUNT(*)
-		FROM invoices
-		`,
-	)
+	countQuery :=
+		fmt.Sprintf(
+			`
+			SELECT COUNT(*)
+
+			FROM invoices i
+
+			LEFT JOIN customers c
+				ON c.id = i.customer_id
+
+			%s
+			`,
+			whereSQL,
+		)
+
+	err =
+		db.DB.Get(
+			&total,
+			countQuery,
+			args...,
+		)
 
 	if err != nil {
+
 		return nil, fmt.Errorf(
 			"failed to count invoices: %w",
 			err,
@@ -543,66 +729,95 @@ func GetInvoices(
 	// --------------------------------------------------------
 
 	offset :=
-		(page - 1) *
-			pageSize
+		(options.Page - 1) *
+			options.PageSize
 
 	// --------------------------------------------------------
-	// Load only this page
-	//
-	// NOTE:
-	// We intentionally do NOT load invoice items here.
-	// The list page doesn't need them.
-	//
-	// GET /auth/invoice/:id remains responsible for
-	// loading full invoice details and items.
+	// Add pagination arguments
 	// --------------------------------------------------------
+
+	limitPlaceholder :=
+		placeholder
+
+	offsetPlaceholder :=
+		placeholder + 1
+
+	queryArgs :=
+		append(
+			[]interface{}{},
+			args...,
+		)
+
+	queryArgs =
+		append(
+			queryArgs,
+			options.PageSize,
+			offset,
+		)
+
+	// ========================================================
+	// Retrieve filtered/sorted page
+	// ========================================================
 
 	var invoices []models.Invoice
 
-	query := `
-		SELECT
-			i.id,
-			i.customer_id,
+	query :=
+		fmt.Sprintf(
+			`
+			SELECT
+				i.id,
+				i.customer_id,
 
-			COALESCE(
-				NULLIF(
-					TRIM(c.display_name),
-					''
-				),
-				'-'
-			) AS customer_name,
+				COALESCE(
+					NULLIF(
+						TRIM(c.display_name),
+						''
+					),
+					'-'
+				) AS customer_name,
 
-			i.invoice_number,
-			i.invoice_date,
-			i.due_date,
-			i.status,
-			i.subtotal,
-			i.discount,
-			i.tax,
-			i.total,
-			i.notes,
-			i.created_at,
-			i.updated_at
+				i.invoice_number,
+				i.invoice_date,
+				i.due_date,
+				i.status,
+				i.subtotal,
+				i.discount,
+				i.tax,
+				i.total,
+				i.notes,
+				i.created_at,
+				i.updated_at
 
-		FROM invoices i
+			FROM invoices i
 
-		LEFT JOIN customers c
-			ON c.id = i.customer_id
+			LEFT JOIN customers c
+				ON c.id = i.customer_id
 
-		ORDER BY i.id DESC
+			%s
 
-		LIMIT $1
-		OFFSET $2
-	`
+			ORDER BY
+				%s %s,
+				i.id DESC
 
-	err = db.DB.Select(
-		&invoices,
-		query,
-		pageSize,
-		offset,
-	)
+			LIMIT $%d
+			OFFSET $%d
+			`,
+			whereSQL,
+			sortColumn,
+			sortOrder,
+			limitPlaceholder,
+			offsetPlaceholder,
+		)
+
+	err =
+		db.DB.Select(
+			&invoices,
+			query,
+			queryArgs...,
+		)
 
 	if err != nil {
+
 		return nil, fmt.Errorf(
 			"failed to retrieve invoices: %w",
 			err,
@@ -610,6 +825,7 @@ func GetInvoices(
 	}
 
 	if invoices == nil {
+
 		invoices =
 			[]models.Invoice{}
 	}
@@ -621,13 +837,10 @@ func GetInvoices(
 	totalPages := 0
 
 	if total > 0 {
-		totalPages =
-			int(
-				(total +
-					int64(pageSize) -
-					1) /
-					int64(pageSize),
-			)
+		totalPages = int(
+			(total + int64(options.PageSize) - 1) /
+				int64(options.PageSize),
+		)
 	}
 
 	// --------------------------------------------------------
@@ -640,9 +853,9 @@ func GetInvoices(
 
 		Pagination: InvoicePagination{
 
-			Page: page,
+			Page: options.Page,
 
-			PageSize: pageSize,
+			PageSize: options.PageSize,
 
 			Total: total,
 
@@ -781,6 +994,7 @@ func getInvoiceItems(
 	}
 
 	if items == nil {
+
 		items =
 			[]InvoiceItemWithProduct{}
 	}
@@ -790,10 +1004,6 @@ func getInvoiceItems(
 
 // ============================================================
 // Get Invoice Items Using Existing SQL Transaction
-//
-// This is particularly important for cancellation.
-// We want the ORIGINAL saved invoice quantities, not quantities
-// supplied by the frontend in the cancellation request.
 // ============================================================
 
 func getInvoiceItemsWithTx(
@@ -833,6 +1043,7 @@ func getInvoiceItemsWithTx(
 	}
 
 	if items == nil {
+
 		items =
 			[]models.InvoiceItem{}
 	}
@@ -959,17 +1170,6 @@ func UpdateInvoice(
 	//
 	// An issued invoice is read-only.
 	// The ONLY allowed action is cancellation.
-	//
-	// We intentionally handle this before validating customer,
-	// items, discount, tax, etc.
-	//
-	// This allows the frontend to submit:
-	//
-	// {
-	//     "status": "CANCELLED"
-	// }
-	//
-	// without sending the entire invoice again.
 	// ========================================================
 
 	if existingStatus == "ISSUED" {
@@ -1022,9 +1222,6 @@ func UpdateInvoice(
 
 		// ----------------------------------------------------
 		// Change status only
-		//
-		// Customer, dates, items, price, tax, discount etc.
-		// remain untouched.
 		// ----------------------------------------------------
 
 		_, err =
@@ -1286,6 +1483,7 @@ func UpdateInvoice(
 			)
 
 		if unitPriceString == "" {
+
 			unitPriceString =
 				product.Price
 		}
@@ -1393,8 +1591,6 @@ func UpdateInvoice(
 
 	// --------------------------------------------------------
 	// DRAFT -> ISSUED
-	//
-	// Deduct stock exactly once.
 	// --------------------------------------------------------
 
 	if status == "ISSUED" {
@@ -1480,7 +1676,7 @@ func UpdateInvoice(
 	}
 
 	// --------------------------------------------------------
-	// Commit invoice + item + stock changes together
+	// Commit
 	// --------------------------------------------------------
 
 	if err :=
@@ -1551,9 +1747,6 @@ func DeleteInvoice(
 
 	// --------------------------------------------------------
 	// Only DRAFT invoices may be deleted.
-	//
-	// Once stock/accounting activity exists, invoices should
-	// remain for audit purposes.
 	// --------------------------------------------------------
 
 	if status != "DRAFT" {
@@ -1601,9 +1794,8 @@ func DeleteInvoice(
 // ============================================================
 // Helper: Validate Manually Requested Invoice Status
 //
-// PARTIAL and PAID are intentionally NOT included here.
-//
-// They are controlled by payment_service.go.
+// PARTIAL and PAID are intentionally NOT included because
+// payment_service.go controls those statuses.
 // ============================================================
 
 func isValidInvoiceStatus(
@@ -1623,6 +1815,142 @@ func isValidInvoiceStatus(
 
 	default:
 		return false
+	}
+}
+
+// ============================================================
+// Helper: Validate Invoice Status Filter
+//
+// Searching/filtering must support every status, including
+// PARTIAL and PAID.
+// ============================================================
+
+func isValidInvoiceFilterStatus(
+	status string,
+) bool {
+
+	switch status {
+
+	case "DRAFT":
+		return true
+
+	case "ISSUED":
+		return true
+
+	case "PARTIAL":
+		return true
+
+	case "PAID":
+		return true
+
+	case "CANCELLED":
+		return true
+
+	default:
+		return false
+	}
+}
+
+// ============================================================
+// Helper: Safe Invoice Sort Column
+//
+// IMPORTANT:
+// SQL column names cannot be parameterised using $1.
+//
+// Therefore we map accepted API values onto known SQL
+// expressions instead of inserting raw user input.
+// ============================================================
+
+func getInvoiceSortColumn(
+	sortBy string,
+) (string, error) {
+
+	sortBy =
+		strings.ToLower(
+			strings.TrimSpace(
+				sortBy,
+			),
+		)
+
+	if sortBy == "" {
+
+		return "i.created_at", nil
+	}
+
+	switch sortBy {
+
+	case "invoice_number":
+
+		return "i.invoice_number", nil
+
+	case "customer":
+
+		return "c.display_name", nil
+
+	case "invoice_date":
+
+		return "i.invoice_date", nil
+
+	case "due_date":
+
+		return "i.due_date", nil
+
+	case "status":
+
+		return "i.status", nil
+
+	case "total":
+
+		return "i.total", nil
+
+	case "created_at":
+
+		return "i.created_at", nil
+
+	default:
+
+		return "", fmt.Errorf(
+			"invalid sort_by value: %s",
+			sortBy,
+		)
+	}
+}
+
+// ============================================================
+// Helper: Safe Invoice Sort Direction
+// ============================================================
+
+func getInvoiceSortOrder(
+	sortOrder string,
+) (string, error) {
+
+	sortOrder =
+		strings.ToLower(
+			strings.TrimSpace(
+				sortOrder,
+			),
+		)
+
+	if sortOrder == "" {
+
+		return "DESC", nil
+	}
+
+	switch sortOrder {
+
+	case "asc":
+
+		return "ASC", nil
+
+	case "desc":
+
+		return "DESC", nil
+
+	default:
+
+		return "", fmt.Errorf(
+			"sort_order must be asc or desc",
+		)
 	}
 }
 

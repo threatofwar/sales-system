@@ -1,10 +1,25 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import {
+  Component,
+  OnInit
+} from '@angular/core';
+
+import {
+  CommonModule
+} from '@angular/common';
+
+import {
+  FormsModule
+} from '@angular/forms';
+
+import {
+  Router
+} from '@angular/router';
 
 import {
   Invoice,
-  InvoiceService
+  InvoiceService,
+  InvoiceSortBy,
+  InvoiceSortOrder
 } from '../../core/auth/invoice/invoice.service';
 
 
@@ -13,13 +28,21 @@ import {
   standalone: true,
 
   imports: [
-    CommonModule
+    CommonModule,
+    FormsModule
   ],
 
-  templateUrl: './invoice.component.html',
-  styleUrl: './invoice.component.scss'
+  templateUrl:
+    './invoice.component.html',
+
+  styleUrl:
+    './invoice.component.scss'
 })
 export class InvoiceComponent implements OnInit {
+
+  // ==========================================================
+  // Invoice Data
+  // ==========================================================
 
   invoices: Invoice[] = [];
 
@@ -27,7 +50,8 @@ export class InvoiceComponent implements OnInit {
 
   errorMessage = '';
 
-  deletingInvoiceId: number | null = null;
+  deletingInvoiceId:
+    number | null = null;
 
 
   // ==========================================================
@@ -43,11 +67,52 @@ export class InvoiceComponent implements OnInit {
   totalPages = 0;
 
 
+  // ==========================================================
+  // Search
+  //
+  // searchText = what is currently typed.
+  // search = what has actually been submitted to backend.
+  //
+  // This prevents an HTTP request for every keystroke.
+  // ==========================================================
+
+  searchText = '';
+
+  search = '';
+
+
+  // ==========================================================
+  // Status Filter
+  //
+  // Empty string means ALL.
+  // ==========================================================
+
+  statusFilter = '';
+
+
+  // ==========================================================
+  // Sorting
+  // ==========================================================
+
+  sortBy: InvoiceSortBy =
+    'created_at';
+
+  sortOrder: InvoiceSortOrder =
+    'desc';
+
+
   constructor(
-    private invoiceService: InvoiceService,
-    private router: Router
+    private invoiceService:
+      InvoiceService,
+
+    private router:
+      Router
   ) {}
 
+
+  // ==========================================================
+  // Initialise
+  // ==========================================================
 
   ngOnInit(): void {
 
@@ -57,7 +122,7 @@ export class InvoiceComponent implements OnInit {
 
 
   // ==========================================================
-  // Load invoices
+  // Load Invoices
   // ==========================================================
 
   loadInvoices(
@@ -68,6 +133,7 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
+
     if (
       this.totalPages > 0 &&
       page > this.totalPages
@@ -75,60 +141,274 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    this.loading = true;
 
-    this.errorMessage = '';
+    this.loading =
+      true;
+
+    this.errorMessage =
+      '';
+
 
     this.invoiceService
       .getInvoices(
         page,
-        this.pageSize
+        this.pageSize,
+        this.search,
+        this.statusFilter,
+        this.sortBy,
+        this.sortOrder
       )
       .subscribe({
 
-        next: (response) => {
+        next: response => {
 
           console.log(
             'Invoices loaded:',
             response
           );
 
+
           this.invoices =
-            response.invoices ?? [];
+            response.invoices ??
+            [];
+
 
           this.currentPage =
             response.pagination.page;
 
+
           this.pageSize =
             response.pagination.page_size;
+
 
           this.totalInvoices =
             response.pagination.total;
 
+
           this.totalPages =
             response.pagination.total_pages;
 
-          this.loading = false;
+
+          this.loading =
+            false;
 
         },
 
 
-        error: (error) => {
+        error: error => {
 
           console.error(
             'Failed to load invoices:',
             error
           );
 
+
           this.errorMessage =
             error?.error?.error ||
             'Failed to load invoices.';
 
-          this.loading = false;
+
+          this.loading =
+            false;
 
         }
 
       });
+
+  }
+
+
+  // ==========================================================
+  // Search
+  // ==========================================================
+
+  applySearch(): void {
+
+    this.search =
+      this.searchText
+        .trim();
+
+
+    /*
+     * A search may return fewer pages,
+     * therefore always return to page 1.
+     */
+    this.currentPage =
+      1;
+
+
+    this.loadInvoices(
+      1
+    );
+
+  }
+
+
+  // ==========================================================
+  // Clear Search Only
+  // ==========================================================
+
+  clearSearch(): void {
+
+    this.searchText =
+      '';
+
+    this.search =
+      '';
+
+    this.currentPage =
+      1;
+
+    this.loadInvoices(
+      1
+    );
+
+  }
+
+
+  // ==========================================================
+  // Status Filter
+  // ==========================================================
+
+  applyStatusFilter(): void {
+
+    this.currentPage =
+      1;
+
+    this.loadInvoices(
+      1
+    );
+
+  }
+
+
+  // ==========================================================
+  // Clear All Filters
+  // ==========================================================
+
+  clearFilters(): void {
+
+    this.searchText =
+      '';
+
+    this.search =
+      '';
+
+    this.statusFilter =
+      '';
+
+    this.sortBy =
+      'created_at';
+
+    this.sortOrder =
+      'desc';
+
+    this.currentPage =
+      1;
+
+    this.loadInvoices(
+      1
+    );
+
+  }
+
+
+  // ==========================================================
+  // Check If Any Filter Is Active
+  // ==========================================================
+
+  hasActiveFilters(): boolean {
+
+    return (
+      this.search !== '' ||
+      this.statusFilter !== ''
+    );
+
+  }
+
+
+  // ==========================================================
+  // Sort
+  // ==========================================================
+
+  sortInvoices(
+    column: InvoiceSortBy
+  ): void {
+
+    /*
+     * Clicking the currently selected
+     * column toggles ASC / DESC.
+     */
+    if (
+      this.sortBy === column
+    ) {
+
+      this.sortOrder =
+        this.sortOrder === 'asc'
+          ? 'desc'
+          : 'asc';
+
+    } else {
+
+      /*
+       * A new column defaults to ASC,
+       * except dates/total where DESC
+       * tends to be more useful.
+       */
+
+      this.sortBy =
+        column;
+
+
+      if (
+        column === 'invoice_date' ||
+        column === 'due_date' ||
+        column === 'total' ||
+        column === 'created_at'
+      ) {
+
+        this.sortOrder =
+          'desc';
+
+      } else {
+
+        this.sortOrder =
+          'asc';
+
+      }
+
+    }
+
+
+    this.currentPage =
+      1;
+
+
+    this.loadInvoices(
+      1
+    );
+
+  }
+
+
+  // ==========================================================
+  // Sort Indicator
+  // ==========================================================
+
+  getSortIndicator(
+    column: InvoiceSortBy
+  ): string {
+
+    if (
+      this.sortBy !== column
+    ) {
+      return '';
+    }
+
+
+    return this.sortOrder === 'asc'
+      ? '▲'
+      : '▼';
 
   }
 
@@ -146,6 +426,7 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
+
     this.loadInvoices(
       this.currentPage - 1
     );
@@ -156,11 +437,13 @@ export class InvoiceComponent implements OnInit {
   nextPage(): void {
 
     if (
-      this.currentPage >= this.totalPages ||
+      this.currentPage >=
+        this.totalPages ||
       this.loading
     ) {
       return;
     }
+
 
     this.loadInvoices(
       this.currentPage + 1
@@ -182,6 +465,7 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
+
     this.loadInvoices(
       page
     );
@@ -201,6 +485,7 @@ export class InvoiceComponent implements OnInit {
       return 0;
     }
 
+
     return (
       (
         this.currentPage - 1
@@ -219,6 +504,7 @@ export class InvoiceComponent implements OnInit {
       return 0;
     }
 
+
     return Math.min(
       this.currentPage *
         this.pageSize,
@@ -230,7 +516,9 @@ export class InvoiceComponent implements OnInit {
 
   getVisiblePages(): number[] {
 
-    const pages: number[] = [];
+    const pages:
+      number[] = [];
+
 
     if (
       this.totalPages <= 0
@@ -238,17 +526,6 @@ export class InvoiceComponent implements OnInit {
       return pages;
     }
 
-    /*
-     * Show up to 5 page buttons.
-     *
-     * Example:
-     *
-     * 1 2 3 4 5
-     *
-     * or:
-     *
-     * 8 9 10 11 12
-     */
 
     let startPage =
       Math.max(
@@ -256,22 +533,20 @@ export class InvoiceComponent implements OnInit {
         this.currentPage - 2
       );
 
+
     let endPage =
       Math.min(
         this.totalPages,
         startPage + 4
       );
 
-    /*
-     * If we're near the final page,
-     * move the start backwards so that
-     * we still show up to 5 pages.
-     */
+
     startPage =
       Math.max(
         1,
         endPage - 4
       );
+
 
     for (
       let page = startPage;
@@ -284,6 +559,7 @@ export class InvoiceComponent implements OnInit {
       );
 
     }
+
 
     return pages;
 
@@ -299,21 +575,22 @@ export class InvoiceComponent implements OnInit {
   ): void {
 
     if (
-      !Number.isInteger(pageSize) ||
+      !Number.isInteger(
+        pageSize
+      ) ||
       pageSize <= 0
     ) {
       return;
     }
 
+
     this.pageSize =
       pageSize;
 
-    /*
-     * Always return to page 1 when the
-     * number of rows per page changes.
-     */
+
     this.currentPage =
       1;
+
 
     this.loadInvoices(
       1
@@ -323,7 +600,7 @@ export class InvoiceComponent implements OnInit {
 
 
   // ==========================================================
-  // Create invoice
+  // Create Invoice
   // ==========================================================
 
   createInvoice(): void {
@@ -336,7 +613,7 @@ export class InvoiceComponent implements OnInit {
 
 
   // ==========================================================
-  // View invoice
+  // View Invoice
   // ==========================================================
 
   viewInvoice(
@@ -347,6 +624,7 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
+
     this.router.navigate([
       '/invoice',
       invoice.id
@@ -356,7 +634,7 @@ export class InvoiceComponent implements OnInit {
 
 
   // ==========================================================
-  // Edit invoice
+  // Edit Invoice
   // ==========================================================
 
   editInvoice(
@@ -367,17 +645,15 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    /*
-     * Only DRAFT invoices are editable.
-     */
-    if (
-      invoice.status
-        ?.toUpperCase() !==
-      'DRAFT'
-    ) {
 
+    if (
+      !this.canEditInvoice(
+        invoice
+      )
+    ) {
       return;
     }
+
 
     this.router.navigate([
       '/invoice',
@@ -389,7 +665,7 @@ export class InvoiceComponent implements OnInit {
 
 
   // ==========================================================
-  // Can Edit
+  // Can Edit Invoice
   // ==========================================================
 
   canEditInvoice(
@@ -406,7 +682,7 @@ export class InvoiceComponent implements OnInit {
 
 
   // ==========================================================
-  // Can Delete
+  // Can Delete Invoice
   // ==========================================================
 
   canDeleteInvoice(
@@ -423,7 +699,7 @@ export class InvoiceComponent implements OnInit {
 
 
   // ==========================================================
-  // Delete invoice
+  // Delete Invoice
   // ==========================================================
 
   deleteInvoice(
@@ -434,11 +710,7 @@ export class InvoiceComponent implements OnInit {
       return;
     }
 
-    /*
-     * Only DRAFT invoices may be deleted.
-     *
-     * The backend enforces the same rule.
-     */
+
     if (
       !this.canDeleteInvoice(
         invoice
@@ -481,13 +753,14 @@ export class InvoiceComponent implements OnInit {
             invoice.id
           );
 
+
           this.deletingInvoiceId =
             null;
 
+
           /*
-           * If we deleted the only invoice
-           * on the current page, move to the
-           * previous page where appropriate.
+           * If this was the only record on
+           * the current page, go backwards.
            */
           if (
             this.invoices.length === 1 &&
@@ -501,6 +774,7 @@ export class InvoiceComponent implements OnInit {
             return;
           }
 
+
           this.loadInvoices(
             this.currentPage
           );
@@ -508,16 +782,18 @@ export class InvoiceComponent implements OnInit {
         },
 
 
-        error: (error) => {
+        error: error => {
 
           console.error(
             'Failed to delete invoice:',
             error
           );
 
+
           this.errorMessage =
             error?.error?.error ||
             'Failed to delete invoice.';
+
 
           this.deletingInvoiceId =
             null;
@@ -530,7 +806,7 @@ export class InvoiceComponent implements OnInit {
 
 
   // ==========================================================
-  // Format date
+  // Format Date
   // ==========================================================
 
   formatDate(
@@ -543,7 +819,9 @@ export class InvoiceComponent implements OnInit {
 
 
     const parsedDate =
-      new Date(date);
+      new Date(
+        date
+      );
 
 
     if (
@@ -569,23 +847,29 @@ export class InvoiceComponent implements OnInit {
 
 
   // ==========================================================
-  // Format money
+  // Format Money
   // ==========================================================
 
   formatMoney(
-    value?: string | number | null
+    value?:
+      string |
+      number |
+      null
   ): string {
 
     const amount =
       Number(
-        value ?? 0
+        value ??
+        0
       );
 
 
     if (
       isNaN(amount)
     ) {
+
       return 'RM 0.00';
+
     }
 
 
@@ -604,7 +888,7 @@ export class InvoiceComponent implements OnInit {
 
 
   // ==========================================================
-  // Status CSS helper
+  // Status CSS
   // ==========================================================
 
   getStatusClass(
@@ -639,7 +923,7 @@ export class InvoiceComponent implements OnInit {
 
 
   // ==========================================================
-  // Track invoices in *ngFor
+  // Track Invoice
   // ==========================================================
 
   trackByInvoiceId(
@@ -647,7 +931,10 @@ export class InvoiceComponent implements OnInit {
     invoice: Invoice
   ): number {
 
-    return invoice.id ?? index;
+    return (
+      invoice.id ??
+      index
+    );
 
   }
 

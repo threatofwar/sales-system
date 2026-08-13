@@ -3,18 +3,28 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"go-login-restapi/pkg/services"
 )
 
-// CreateInvoice handles POST /auth/invoice
-func CreateInvoice(c *gin.Context) {
+// ============================================================
+// Create Invoice
+// POST /auth/invoice
+// ============================================================
+
+func CreateInvoice(
+	c *gin.Context,
+) {
 
 	var input services.CreateInvoiceInput
 
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err :=
+		c.ShouldBindJSON(
+			&input,
+		); err != nil {
 
 		c.JSON(
 			http.StatusBadRequest,
@@ -26,7 +36,10 @@ func CreateInvoice(c *gin.Context) {
 		return
 	}
 
-	invoice, err := services.CreateInvoice(&input)
+	invoice, err :=
+		services.CreateInvoice(
+			&input,
+		)
 
 	if err != nil {
 
@@ -44,31 +57,96 @@ func CreateInvoice(c *gin.Context) {
 		http.StatusCreated,
 		gin.H{
 			"message": "invoice created successfully",
+
 			"invoice": invoice,
 		},
 	)
 }
 
-// GetInvoices handles GET /auth/invoice
-func GetInvoices(c *gin.Context) {
+// ============================================================
+// Get Invoices
+//
+// GET /auth/invoice
+//
+// Supported query parameters:
+//
+// page
+// page_size
+// search
+// status
+// sort_by
+// sort_order
+//
+// Example:
+//
+// /auth/invoice?page=1&page_size=20
+// &search=Yori
+// &status=PAID
+// &sort_by=total
+// &sort_order=desc
+// ============================================================
+
+func GetInvoices(
+	c *gin.Context,
+) {
 
 	// --------------------------------------------------------
-	// Default pagination
+	// Defaults
 	// --------------------------------------------------------
 
-	page := 1
+	page :=
+		1
 
-	pageSize := 20
+	pageSize :=
+		20
+
+	search :=
+		strings.TrimSpace(
+			c.Query(
+				"search",
+			),
+		)
+
+	status :=
+		strings.ToUpper(
+			strings.TrimSpace(
+				c.Query(
+					"status",
+				),
+			),
+		)
+
+	sortBy :=
+		strings.ToLower(
+			strings.TrimSpace(
+				c.Query(
+					"sort_by",
+				),
+			),
+		)
+
+	sortOrder :=
+		strings.ToLower(
+			strings.TrimSpace(
+				c.Query(
+					"sort_order",
+				),
+			),
+		)
 
 	// --------------------------------------------------------
 	// Parse page
 	// --------------------------------------------------------
 
 	if value :=
-		c.Query("page"); value != "" {
+		c.Query(
+			"page",
+		); value != "" {
 
 		parsedPage, err :=
-			strconv.Atoi(value)
+			strconv.Atoi(
+				value,
+			)
 
 		if err != nil ||
 			parsedPage <= 0 {
@@ -92,10 +170,14 @@ func GetInvoices(c *gin.Context) {
 	// --------------------------------------------------------
 
 	if value :=
-		c.Query("page_size"); value != "" {
+		c.Query(
+			"page_size",
+		); value != "" {
 
 		parsedPageSize, err :=
-			strconv.Atoi(value)
+			strconv.Atoi(
+				value,
+			)
 
 		if err != nil ||
 			parsedPageSize <= 0 {
@@ -115,16 +197,72 @@ func GetInvoices(c *gin.Context) {
 	}
 
 	// --------------------------------------------------------
-	// Load paginated invoices
+	// Prevent extremely large page sizes
+	// --------------------------------------------------------
+
+	if pageSize > 100 {
+
+		pageSize =
+			100
+	}
+
+	// --------------------------------------------------------
+	// Build service options
+	// --------------------------------------------------------
+
+	options :=
+		services.InvoiceListOptions{
+
+			Page: page,
+
+			PageSize: pageSize,
+
+			Search: search,
+
+			Status: status,
+
+			SortBy: sortBy,
+
+			SortOrder: sortOrder,
+		}
+
+	// --------------------------------------------------------
+	// Retrieve invoices
 	// --------------------------------------------------------
 
 	result, err :=
 		services.GetInvoices(
-			page,
-			pageSize,
+			options,
 		)
 
 	if err != nil {
+
+		/*
+		 * Query parameter validation errors are
+		 * client errors rather than server errors.
+		 */
+		if strings.Contains(
+			err.Error(),
+			"invalid sort_by",
+		) ||
+			strings.Contains(
+				err.Error(),
+				"sort_order",
+			) ||
+			strings.Contains(
+				err.Error(),
+				"invalid invoice status filter",
+			) {
+
+			c.JSON(
+				http.StatusBadRequest,
+				gin.H{
+					"error": err.Error(),
+				},
+			)
+
+			return
+		}
 
 		c.JSON(
 			http.StatusInternalServerError,
@@ -146,16 +284,26 @@ func GetInvoices(c *gin.Context) {
 	)
 }
 
-// GetInvoiceByID handles GET /auth/invoice/:id
-func GetInvoiceByID(c *gin.Context) {
+// ============================================================
+// Get Invoice By ID
+// GET /auth/invoice/:id
+// ============================================================
 
-	id, err := strconv.ParseInt(
-		c.Param("id"),
-		10,
-		64,
-	)
+func GetInvoiceByID(
+	c *gin.Context,
+) {
 
-	if err != nil || id <= 0 {
+	id, err :=
+		strconv.ParseInt(
+			c.Param(
+				"id",
+			),
+			10,
+			64,
+		)
+
+	if err != nil ||
+		id <= 0 {
 
 		c.JSON(
 			http.StatusBadRequest,
@@ -167,7 +315,10 @@ func GetInvoiceByID(c *gin.Context) {
 		return
 	}
 
-	invoice, err := services.GetInvoiceByID(id)
+	invoice, err :=
+		services.GetInvoiceByID(
+			id,
+		)
 
 	if err != nil {
 
@@ -189,16 +340,26 @@ func GetInvoiceByID(c *gin.Context) {
 	)
 }
 
-// UpdateInvoice handles PUT /auth/invoice/:id
-func UpdateInvoice(c *gin.Context) {
+// ============================================================
+// Update Invoice
+// PUT /auth/invoice/:id
+// ============================================================
 
-	id, err := strconv.ParseInt(
-		c.Param("id"),
-		10,
-		64,
-	)
+func UpdateInvoice(
+	c *gin.Context,
+) {
 
-	if err != nil || id <= 0 {
+	id, err :=
+		strconv.ParseInt(
+			c.Param(
+				"id",
+			),
+			10,
+			64,
+		)
+
+	if err != nil ||
+		id <= 0 {
 
 		c.JSON(
 			http.StatusBadRequest,
@@ -212,7 +373,10 @@ func UpdateInvoice(c *gin.Context) {
 
 	var input services.UpdateInvoiceInput
 
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err :=
+		c.ShouldBindJSON(
+			&input,
+		); err != nil {
 
 		c.JSON(
 			http.StatusBadRequest,
@@ -224,10 +388,11 @@ func UpdateInvoice(c *gin.Context) {
 		return
 	}
 
-	invoice, err := services.UpdateInvoice(
-		id,
-		&input,
-	)
+	invoice, err :=
+		services.UpdateInvoice(
+			id,
+			&input,
+		)
 
 	if err != nil {
 
@@ -245,21 +410,32 @@ func UpdateInvoice(c *gin.Context) {
 		http.StatusOK,
 		gin.H{
 			"message": "invoice updated successfully",
+
 			"invoice": invoice,
 		},
 	)
 }
 
-// DeleteInvoice handles DELETE /auth/invoice/:id
-func DeleteInvoice(c *gin.Context) {
+// ============================================================
+// Delete Invoice
+// DELETE /auth/invoice/:id
+// ============================================================
 
-	id, err := strconv.ParseInt(
-		c.Param("id"),
-		10,
-		64,
-	)
+func DeleteInvoice(
+	c *gin.Context,
+) {
 
-	if err != nil || id <= 0 {
+	id, err :=
+		strconv.ParseInt(
+			c.Param(
+				"id",
+			),
+			10,
+			64,
+		)
+
+	if err != nil ||
+		id <= 0 {
 
 		c.JSON(
 			http.StatusBadRequest,
@@ -271,7 +447,10 @@ func DeleteInvoice(c *gin.Context) {
 		return
 	}
 
-	err = services.DeleteInvoice(id)
+	err =
+		services.DeleteInvoice(
+			id,
+		)
 
 	if err != nil {
 
