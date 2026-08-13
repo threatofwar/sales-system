@@ -3,6 +3,12 @@
   <!-- ===================================================== -->
   <!-- Header -->
   <!-- ===================================================== -->
+   <div
+  *ngIf="shareMessage"
+  class="no-print rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700"
+>
+  {{ shareMessage }}
+</div>
 
   <div
     class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
@@ -42,7 +48,7 @@
       <button
         type="button"
         (click)="backToInvoices()"
-        class="no-printrounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+        class="no-print rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
       >
         Back
       </button>
@@ -58,7 +64,42 @@
       </button>
 
 
-      <!-- Edit is DRAFT only -->
+      <button
+        type="button"
+        (click)="downloadInvoicePdf()"
+        [disabled]="
+          !invoice ||
+          generatingPdf ||
+          sharingInvoice
+        "
+        class="no-print rounded-md border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {{
+          generatingPdf
+            ? 'Generating...'
+            : 'Download PDF'
+        }}
+      </button>
+
+
+      <button
+        type="button"
+        (click)="shareInvoicePdf()"
+        [disabled]="
+          !invoice ||
+          sharingInvoice ||
+          generatingPdf
+        "
+        class="no-print rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {{
+          sharingInvoice
+            ? 'Preparing...'
+            : 'Share Invoice PDF'
+        }}
+      </button>
+
+
       <button
         *ngIf="canEditInvoice()"
         type="button"
@@ -69,7 +110,6 @@
       </button>
 
 
-      <!-- Cancel is DRAFT / ISSUED only -->
       <button
         *ngIf="canCancelInvoice()"
         type="button"
@@ -540,7 +580,7 @@
     <!-- =================================================== -->
 
     <div
-      class="rounded-lg bg-white p-6 shadow"
+      class="no-print rounded-lg bg-white p-6 shadow"
     >
 
       <div
@@ -888,7 +928,7 @@
 
     <div
       *ngIf="!canAddPayment()"
-      class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600"
+      class="no-print rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600"
     >
 
       <span
@@ -925,7 +965,7 @@
     <!-- =================================================== -->
 
     <div
-      class="overflow-hidden rounded-lg bg-white shadow"
+      class="no-print overflow-hidden rounded-lg bg-white shadow"
     >
 
       <div

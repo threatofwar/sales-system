@@ -34,6 +34,7 @@ import {
   PaymentService
 } from '../../../core/auth/payment/payment.service';
 
+
 @Component({
   selector: 'app-invoice-detail',
   standalone: true,
@@ -69,6 +70,10 @@ export class InvoiceDetailComponent
 
   cancellingInvoice = false;
 
+  generatingPdf = false;
+
+  sharingInvoice = false;
+
   errorMessage = '';
 
   paymentErrorMessage = '';
@@ -76,6 +81,9 @@ export class InvoiceDetailComponent
   paymentSuccessMessage = '';
 
   actionSuccessMessage = '';
+
+  shareMessage = '';
+
 
   paymentMethods: {
     value: PaymentMethod;
@@ -109,6 +117,7 @@ export class InvoiceDetailComponent
 
   ];
 
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -116,6 +125,7 @@ export class InvoiceDetailComponent
     private invoiceService: InvoiceService,
     private paymentService: PaymentService
   ) {}
+
 
   ngOnInit(): void {
 
@@ -150,12 +160,14 @@ export class InvoiceDetailComponent
 
       });
 
+
     const id =
       Number(
         this.route.snapshot
           .paramMap
           .get('id')
       );
+
 
     if (
       !Number.isInteger(id) ||
@@ -168,6 +180,7 @@ export class InvoiceDetailComponent
       return;
     }
 
+
     this.invoiceId =
       id;
 
@@ -175,15 +188,19 @@ export class InvoiceDetailComponent
 
   }
 
+
   // ==========================================================
   // Load Invoice
   // ==========================================================
 
   loadInvoice(): void {
 
-    this.loading = true;
+    this.loading =
+      true;
 
-    this.errorMessage = '';
+    this.errorMessage =
+      '';
+
 
     this.invoiceService
       .getInvoice(
@@ -225,6 +242,7 @@ export class InvoiceDetailComponent
 
   }
 
+
   // ==========================================================
   // Extract Invoice
   // ==========================================================
@@ -249,6 +267,7 @@ export class InvoiceDetailComponent
 
   }
 
+
   // ==========================================================
   // Payment Summary
   // ==========================================================
@@ -264,6 +283,7 @@ export class InvoiceDetailComponent
 
     this.paymentErrorMessage =
       '';
+
 
     this.paymentService
       .getInvoicePaymentSummary(
@@ -301,6 +321,7 @@ export class InvoiceDetailComponent
 
   }
 
+
   // ==========================================================
   // Create Payment
   // ==========================================================
@@ -313,6 +334,7 @@ export class InvoiceDetailComponent
     this.paymentSuccessMessage =
       '';
 
+
     if (!this.invoice) {
 
       this.paymentErrorMessage =
@@ -321,6 +343,7 @@ export class InvoiceDetailComponent
       return;
     }
 
+
     if (!this.canAddPayment()) {
 
       this.paymentErrorMessage =
@@ -328,6 +351,7 @@ export class InvoiceDetailComponent
 
       return;
     }
+
 
     if (this.paymentForm.invalid) {
 
@@ -340,6 +364,7 @@ export class InvoiceDetailComponent
       return;
     }
 
+
     const paymentAmount =
       Number(
         this.paymentForm
@@ -347,8 +372,10 @@ export class InvoiceDetailComponent
           .amount
       );
 
+
     const outstanding =
       this.getOutstandingBalance();
+
 
     if (
       !Number.isFinite(
@@ -363,6 +390,7 @@ export class InvoiceDetailComponent
       return;
     }
 
+
     if (
       paymentAmount >
       outstanding
@@ -374,9 +402,12 @@ export class InvoiceDetailComponent
       return;
     }
 
-    const paymentMethod = (
-  this.paymentForm.value.payment_method
-) as PaymentMethod;
+
+    const paymentMethod =
+      this.paymentForm
+        .value
+        .payment_method as PaymentMethod;
+
 
     const referenceNo =
       this.paymentForm
@@ -385,12 +416,14 @@ export class InvoiceDetailComponent
         ?.trim() ||
       null;
 
+
     const notes =
       this.paymentForm
         .value
         .notes
         ?.trim() ||
       null;
+
 
     const payload:
       CreatePaymentRequest = {
@@ -420,8 +453,10 @@ export class InvoiceDetailComponent
 
     };
 
+
     this.submittingPayment =
       true;
+
 
     this.paymentService
       .createPayment(
@@ -464,6 +499,7 @@ export class InvoiceDetailComponent
 
   }
 
+
   // ==========================================================
   // Cancel Invoice
   // ==========================================================
@@ -474,6 +510,7 @@ export class InvoiceDetailComponent
       return;
     }
 
+
     if (!this.canCancelInvoice()) {
 
       this.errorMessage =
@@ -482,14 +519,17 @@ export class InvoiceDetailComponent
       return;
     }
 
+
     const confirmed =
       window.confirm(
         'Are you sure you want to cancel this invoice?'
       );
 
+
     if (!confirmed) {
       return;
     }
+
 
     this.errorMessage =
       '';
@@ -500,15 +540,6 @@ export class InvoiceDetailComponent
     this.cancellingInvoice =
       true;
 
-    /*
-     * For an ISSUED invoice the backend only needs
-     * the status because it restores the ORIGINAL
-     * invoice item quantities.
-     *
-     * For DRAFT we submit the existing values so the
-     * current UpdateInvoice endpoint can process it
-     * normally.
-     */
 
     if (
       this.invoice.status
@@ -519,6 +550,7 @@ export class InvoiceDetailComponent
       const payload = {
         status: 'CANCELLED'
       };
+
 
       this.invoiceService
         .updateInvoice(
@@ -558,11 +590,10 @@ export class InvoiceDetailComponent
         });
 
       return;
+
     }
 
-    /*
-     * DRAFT cancellation.
-     */
+
     const payload = {
 
       customer_id:
@@ -624,6 +655,7 @@ export class InvoiceDetailComponent
 
     };
 
+
     this.invoiceService
       .updateInvoice(
         this.invoiceId,
@@ -663,6 +695,950 @@ export class InvoiceDetailComponent
 
   }
 
+
+  // ==========================================================
+  // PDF Generator
+  // ==========================================================
+
+  private async buildInvoicePdf(): Promise<{
+    blob: Blob;
+    fileName: string;
+  }> {
+
+    if (!this.invoice) {
+
+      throw new Error(
+        'Invoice information is unavailable.'
+      );
+
+    }
+
+
+    /*
+     * Dynamic imports are useful here because this project
+     * uses Angular SSR. The PDF libraries are only loaded
+     * after a browser user presses Download/Share.
+     */
+    const [
+      jspdfModule,
+      autoTableModule
+    ] = await Promise.all([
+
+      import('jspdf'),
+
+      import('jspdf-autotable')
+
+    ]);
+
+
+    const jsPDF =
+      jspdfModule.jsPDF;
+
+    const autoTable =
+      autoTableModule.autoTable;
+
+
+    const invoice =
+      this.invoice;
+
+
+    const doc =
+      new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+
+    const pageWidth =
+      doc.internal.pageSize
+        .getWidth();
+
+
+    const left =
+      15;
+
+    const right =
+      pageWidth - 15;
+
+
+    // --------------------------------------------------------
+    // Heading
+    // --------------------------------------------------------
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.setFontSize(
+      24
+    );
+
+    doc.text(
+      'INVOICE',
+      left,
+      20
+    );
+
+
+    doc.setFontSize(
+      11
+    );
+
+    doc.text(
+      invoice.invoice_number,
+      right,
+      19,
+      {
+        align: 'right'
+      }
+    );
+
+
+    doc.setFont(
+      'helvetica',
+      'normal'
+    );
+
+    doc.setFontSize(
+      9
+    );
+
+    doc.text(
+      `Status: ${invoice.status}`,
+      right,
+      25,
+      {
+        align: 'right'
+      }
+    );
+
+
+    doc.setDrawColor(
+      210
+    );
+
+    doc.line(
+      left,
+      31,
+      right,
+      31
+    );
+
+
+    // --------------------------------------------------------
+    // Customer
+    // --------------------------------------------------------
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.setFontSize(
+      9
+    );
+
+    doc.text(
+      'BILL TO',
+      left,
+      41
+    );
+
+
+    doc.setFont(
+      'helvetica',
+      'normal'
+    );
+
+    doc.setFontSize(
+      11
+    );
+
+    doc.text(
+      invoice.customer_name ||
+      `Customer #${invoice.customer_id}`,
+      left,
+      48
+    );
+
+
+    // --------------------------------------------------------
+    // Dates
+    // --------------------------------------------------------
+
+    doc.setFontSize(
+      9
+    );
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.text(
+      'Invoice Date',
+      120,
+      41
+    );
+
+    doc.text(
+      'Due Date',
+      120,
+      49
+    );
+
+
+    doc.setFont(
+      'helvetica',
+      'normal'
+    );
+
+    doc.text(
+      this.formatDate(
+        invoice.invoice_date
+      ),
+      right,
+      41,
+      {
+        align: 'right'
+      }
+    );
+
+    doc.text(
+      this.formatDate(
+        invoice.due_date
+      ),
+      right,
+      49,
+      {
+        align: 'right'
+      }
+    );
+
+
+    // --------------------------------------------------------
+    // Invoice Items
+    // --------------------------------------------------------
+
+    const itemRows =
+      (
+        invoice.items ??
+        []
+      ).map(
+        item => [
+
+          item.product_name ||
+          `Product #${item.product_id}`,
+
+          String(
+            item.quantity
+          ),
+
+          `RM ${this.formatMoney(
+            item.unit_price
+          )}`,
+
+          `RM ${this.formatMoney(
+            item.discount
+          )}`,
+
+          `RM ${this.formatMoney(
+            this.getItemTotal(
+              item
+            )
+          )}`
+
+        ]
+      );
+
+
+    autoTable(
+      doc,
+      {
+
+        startY:
+          60,
+
+        margin: {
+          left,
+          right: 15
+        },
+
+        head: [[
+          'Product',
+          'Qty',
+          'Unit Price',
+          'Discount',
+          'Total'
+        ]],
+
+        body:
+          itemRows,
+
+        theme:
+          'grid',
+
+        styles: {
+          fontSize: 9,
+          cellPadding: 3
+        },
+
+        headStyles: {
+          fillColor: [
+            55,
+            65,
+            81
+          ],
+          textColor: 255
+        },
+
+        columnStyles: {
+
+          0: {
+            cellWidth: 70
+          },
+
+          1: {
+            halign: 'right',
+            cellWidth: 15
+          },
+
+          2: {
+            halign: 'right'
+          },
+
+          3: {
+            halign: 'right'
+          },
+
+          4: {
+            halign: 'right'
+          }
+
+        }
+
+      }
+    );
+
+
+    const tableInfo =
+      (
+        doc as typeof doc & {
+          lastAutoTable?: {
+            finalY: number;
+          };
+        }
+      ).lastAutoTable;
+
+
+    let y =
+      (
+        tableInfo
+          ?.finalY ??
+        70
+      ) + 10;
+
+
+    // --------------------------------------------------------
+    // Make sure totals fit
+    // --------------------------------------------------------
+
+    if (
+      y > 225
+    ) {
+
+      doc.addPage();
+
+      y =
+        20;
+
+    }
+
+
+    const labelX =
+      130;
+
+    const amountX =
+      right;
+
+
+    doc.setFontSize(
+      9
+    );
+
+
+    // Subtotal
+    doc.setFont(
+      'helvetica',
+      'normal'
+    );
+
+    doc.text(
+      'Subtotal',
+      labelX,
+      y
+    );
+
+    doc.text(
+      `RM ${this.formatMoney(
+        invoice.subtotal
+      )}`,
+      amountX,
+      y,
+      {
+        align: 'right'
+      }
+    );
+
+
+    y +=
+      7;
+
+
+    // Discount
+    doc.text(
+      'Discount',
+      labelX,
+      y
+    );
+
+    doc.text(
+      `RM ${this.formatMoney(
+        invoice.discount
+      )}`,
+      amountX,
+      y,
+      {
+        align: 'right'
+      }
+    );
+
+
+    y +=
+      7;
+
+
+    // Tax
+    doc.text(
+      'Tax',
+      labelX,
+      y
+    );
+
+    doc.text(
+      `RM ${this.formatMoney(
+        invoice.tax
+      )}`,
+      amountX,
+      y,
+      {
+        align: 'right'
+      }
+    );
+
+
+    y +=
+      4;
+
+
+    doc.line(
+      labelX,
+      y,
+      amountX,
+      y
+    );
+
+
+    y +=
+      7;
+
+
+    // Total
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.setFontSize(
+      12
+    );
+
+    doc.text(
+      'TOTAL',
+      labelX,
+      y
+    );
+
+    doc.text(
+      `RM ${this.formatMoney(
+        invoice.total
+      )}`,
+      amountX,
+      y,
+      {
+        align: 'right'
+      }
+    );
+
+
+    // --------------------------------------------------------
+    // Payment information
+    // --------------------------------------------------------
+
+    if (
+      this.paymentSummary
+    ) {
+
+      y +=
+        14;
+
+
+      doc.setFontSize(
+        9
+      );
+
+      doc.setFont(
+        'helvetica',
+        'normal'
+      );
+
+
+      doc.text(
+        `Amount Paid: RM ${this.formatMoney(
+          this.getAmountPaid()
+        )}`,
+        labelX,
+        y
+      );
+
+
+      y +=
+        6;
+
+
+      doc.text(
+        `Outstanding: RM ${this.formatMoney(
+          this.getOutstandingBalance()
+        )}`,
+        labelX,
+        y
+      );
+
+    }
+
+
+    // --------------------------------------------------------
+    // Notes
+    // --------------------------------------------------------
+
+    if (
+      invoice.notes
+    ) {
+
+      y +=
+        16;
+
+
+      if (
+        y > 255
+      ) {
+
+        doc.addPage();
+
+        y =
+          20;
+
+      }
+
+
+      doc.setFont(
+        'helvetica',
+        'bold'
+      );
+
+      doc.setFontSize(
+        9
+      );
+
+      doc.text(
+        'Notes',
+        left,
+        y
+      );
+
+
+      y +=
+        6;
+
+
+      doc.setFont(
+        'helvetica',
+        'normal'
+      );
+
+
+      const noteLines =
+        doc.splitTextToSize(
+          invoice.notes,
+          175
+        );
+
+
+      doc.text(
+        noteLines,
+        left,
+        y
+      );
+
+    }
+
+
+    // --------------------------------------------------------
+    // Footer / page numbers
+    // --------------------------------------------------------
+
+    const pageCount =
+      doc.getNumberOfPages();
+
+
+    for (
+      let page = 1;
+      page <= pageCount;
+      page++
+    ) {
+
+      doc.setPage(
+        page
+      );
+
+      const pageHeight =
+        doc.internal.pageSize
+          .getHeight();
+
+
+      doc.setFontSize(
+        8
+      );
+
+      doc.setFont(
+        'helvetica',
+        'normal'
+      );
+
+
+      doc.setTextColor(
+        110
+      );
+
+
+      doc.text(
+        `Invoice ${invoice.invoice_number}`,
+        left,
+        pageHeight - 8
+      );
+
+
+      doc.text(
+        `Page ${page} of ${pageCount}`,
+        right,
+        pageHeight - 8,
+        {
+          align: 'right'
+        }
+      );
+
+    }
+
+
+    const blob =
+      doc.output(
+        'blob'
+      );
+
+
+    const safeInvoiceNumber =
+      invoice.invoice_number
+        .replace(
+          /[^a-zA-Z0-9_-]/g,
+          '_'
+        );
+
+
+    const fileName =
+      `${safeInvoiceNumber}.pdf`;
+
+
+    return {
+      blob,
+      fileName
+    };
+
+  }
+
+
+  // ==========================================================
+  // Download PDF
+  // ==========================================================
+
+  async downloadInvoicePdf(): Promise<void> {
+
+    if (
+      !this.invoice ||
+      this.generatingPdf
+    ) {
+      return;
+    }
+
+
+    this.generatingPdf =
+      true;
+
+    this.shareMessage =
+      '';
+
+
+    try {
+
+      const {
+        blob,
+        fileName
+      } =
+        await this.buildInvoicePdf();
+
+
+      const url =
+        URL.createObjectURL(
+          blob
+        );
+
+
+      const link =
+        document.createElement(
+          'a'
+        );
+
+
+      link.href =
+        url;
+
+      link.download =
+        fileName;
+
+
+      document.body
+        .appendChild(
+          link
+        );
+
+
+      link.click();
+
+
+      link.remove();
+
+
+      URL.revokeObjectURL(
+        url
+      );
+
+
+      this.shareMessage =
+        'Invoice PDF downloaded successfully.';
+
+    } catch (error) {
+
+      console.error(
+        'Failed to generate invoice PDF:',
+        error
+      );
+
+
+      this.shareMessage =
+        'Failed to generate invoice PDF.';
+
+    } finally {
+
+      this.generatingPdf =
+        false;
+
+    }
+
+  }
+
+
+  // ==========================================================
+  // Share PDF
+  // ==========================================================
+
+  async shareInvoicePdf(): Promise<void> {
+
+    if (
+      !this.invoice ||
+      this.sharingInvoice
+    ) {
+      return;
+    }
+
+
+    this.sharingInvoice =
+      true;
+
+    this.shareMessage =
+      '';
+
+
+    try {
+
+      const {
+        blob,
+        fileName
+      } =
+        await this.buildInvoicePdf();
+
+
+      const file =
+        new File(
+          [
+            blob
+          ],
+          fileName,
+          {
+            type:
+              'application/pdf'
+          }
+        );
+
+
+      /*
+       * Test whether this browser/device supports
+       * sharing this particular PDF file.
+       */
+      const canShareFile =
+        typeof navigator !==
+          'undefined' &&
+        typeof navigator.canShare ===
+          'function' &&
+        navigator.canShare({
+          files: [
+            file
+          ]
+        });
+
+
+      if (
+        canShareFile &&
+        typeof navigator.share ===
+          'function'
+      ) {
+
+        await navigator.share({
+
+          files: [
+            file
+          ],
+
+          title:
+            `Invoice ${this.invoice.invoice_number}`,
+
+          text:
+            `Invoice ${this.invoice.invoice_number} - RM ${this.formatMoney(
+              this.invoice.total
+            )}`
+
+        });
+
+
+        this.shareMessage =
+          'Invoice shared successfully.';
+
+        return;
+
+      }
+
+
+      /*
+       * Browser cannot share a PDF file.
+       * Download it automatically instead.
+       */
+      const url =
+        URL.createObjectURL(
+          blob
+        );
+
+
+      const link =
+        document.createElement(
+          'a'
+        );
+
+
+      link.href =
+        url;
+
+      link.download =
+        fileName;
+
+
+      document.body
+        .appendChild(
+          link
+        );
+
+
+      link.click();
+
+
+      link.remove();
+
+
+      URL.revokeObjectURL(
+        url
+      );
+
+
+      this.shareMessage =
+        'File sharing is not supported on this browser/device, so the PDF was downloaded instead.';
+
+    } catch (error: unknown) {
+
+      /*
+       * AbortError normally means the user closed
+       * the share dialog without selecting anything.
+       */
+      if (
+        error instanceof DOMException &&
+        error.name === 'AbortError'
+      ) {
+
+        this.shareMessage =
+          '';
+
+        return;
+
+      }
+
+
+      console.error(
+        'Failed to share invoice:',
+        error
+      );
+
+
+      this.shareMessage =
+        'Unable to share the invoice PDF.';
+
+    } finally {
+
+      this.sharingInvoice =
+        false;
+
+    }
+
+  }
+
+
   // ==========================================================
   // Refresh
   // ==========================================================
@@ -701,6 +1677,7 @@ export class InvoiceDetailComponent
 
   }
 
+
   // ==========================================================
   // Reset Payment Form
   // ==========================================================
@@ -728,6 +1705,7 @@ export class InvoiceDetailComponent
 
   }
 
+
   // ==========================================================
   // Business Rules
   // ==========================================================
@@ -746,15 +1724,18 @@ export class InvoiceDetailComponent
 
   }
 
+
   canCancelInvoice(): boolean {
 
     if (!this.invoice) {
       return false;
     }
 
+
     const status =
       this.invoice.status
         ?.toUpperCase();
+
 
     return (
       status === 'DRAFT' ||
@@ -763,15 +1744,18 @@ export class InvoiceDetailComponent
 
   }
 
+
   canAddPayment(): boolean {
 
     if (!this.invoice) {
       return false;
     }
 
+
     const status =
       this.invoice.status
         ?.toUpperCase();
+
 
     return (
       status === 'ISSUED' ||
@@ -779,6 +1763,7 @@ export class InvoiceDetailComponent
     );
 
   }
+
 
   // ==========================================================
   // Payment Helpers
@@ -794,6 +1779,7 @@ export class InvoiceDetailComponent
 
   }
 
+
   getOutstandingBalance(): number {
 
     return Number(
@@ -806,6 +1792,7 @@ export class InvoiceDetailComponent
 
   }
 
+
   getAmountPaid(): number {
 
     return Number(
@@ -815,6 +1802,7 @@ export class InvoiceDetailComponent
     ) || 0;
 
   }
+
 
   getInvoiceTotal(): number {
 
@@ -828,8 +1816,9 @@ export class InvoiceDetailComponent
 
   }
 
+
   // ==========================================================
-  // Invoice Item Helpers
+  // Item Helpers
   // ==========================================================
 
   getItemTotal(
@@ -847,20 +1836,24 @@ export class InvoiceDetailComponent
 
     }
 
+
     const quantity =
       Number(
         item.quantity
       ) || 0;
+
 
     const unitPrice =
       Number(
         item.unit_price
       ) || 0;
 
+
     const discount =
       Number(
         item.discount
       ) || 0;
+
 
     return (
       quantity *
@@ -868,6 +1861,7 @@ export class InvoiceDetailComponent
     ) - discount;
 
   }
+
 
   // ==========================================================
   // Formatting
@@ -887,6 +1881,7 @@ export class InvoiceDetailComponent
         0
       );
 
+
     if (
       !Number.isFinite(
         amount
@@ -897,10 +1892,12 @@ export class InvoiceDetailComponent
 
     }
 
+
     return amount
       .toFixed(2);
 
   }
+
 
   formatDate(
     value:
@@ -913,10 +1910,12 @@ export class InvoiceDetailComponent
       return '-';
     }
 
+
     const date =
       new Date(
         value
       );
+
 
     if (
       Number.isNaN(
@@ -927,6 +1926,7 @@ export class InvoiceDetailComponent
       return value;
 
     }
+
 
     return date
       .toLocaleDateString(
@@ -939,6 +1939,7 @@ export class InvoiceDetailComponent
       );
 
   }
+
 
   getStatusClass(
     status:
@@ -973,6 +1974,7 @@ export class InvoiceDetailComponent
 
   }
 
+
   formatPaymentMethod(
     method:
       string |
@@ -983,6 +1985,7 @@ export class InvoiceDetailComponent
     if (!method) {
       return '-';
     }
+
 
     return method
       .replaceAll(
@@ -997,6 +2000,7 @@ export class InvoiceDetailComponent
       );
 
   }
+
 
   // ==========================================================
   // Payment Utility
@@ -1015,6 +2019,7 @@ export class InvoiceDetailComponent
 
   }
 
+
   getTodayDate(): string {
 
     return new Date()
@@ -1022,6 +2027,7 @@ export class InvoiceDetailComponent
       .split('T')[0];
 
   }
+
 
   toISOString(
     date: string
@@ -1033,9 +2039,11 @@ export class InvoiceDetailComponent
       return date;
     }
 
+
     return `${date}T00:00:00Z`;
 
   }
+
 
   // ==========================================================
   // Navigation
@@ -1050,6 +2058,7 @@ export class InvoiceDetailComponent
       return;
     }
 
+
     this.router.navigate([
       '/invoice',
       this.invoice.id,
@@ -1058,6 +2067,7 @@ export class InvoiceDetailComponent
 
   }
 
+
   backToInvoices(): void {
 
     this.router.navigate([
@@ -1065,6 +2075,7 @@ export class InvoiceDetailComponent
     ]);
 
   }
+
 
   printInvoice(): void {
 
