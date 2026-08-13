@@ -12,6 +12,38 @@ import (
 )
 
 // ============================================================
+// Payment List / Pagination Structures
+// ============================================================
+
+type PaymentPagination struct {
+	Page       int   `json:"page"`
+	PageSize   int   `json:"page_size"`
+	Total      int64 `json:"total"`
+	TotalPages int   `json:"total_pages"`
+}
+
+type PaymentListResponse struct {
+	Payments   []PaymentWithInvoice `json:"payments"`
+	Pagination PaymentPagination    `json:"pagination"`
+}
+
+// PaymentListOptions controls pagination, searching,
+// filtering and sorting for GET /auth/payment.
+type PaymentListOptions struct {
+	Page int
+
+	PageSize int
+
+	Search string
+
+	PaymentMethod string
+
+	SortBy string
+
+	SortOrder string
+}
+
+// ============================================================
 // Request / Response Structures
 // ============================================================
 
@@ -383,67 +415,367 @@ func CreatePayment(
 
 // ============================================================
 // Get All Payments
+//
+// Supports:
+//
+// page
+// page_size
+// search
+// payment_method
+// sort_by
+// sort_order
+//
+// Search checks:
+//
+// invoice number
+// customer display name
+// payment reference number
 // ============================================================
 
-func GetPayments() (
-	[]PaymentWithInvoice,
-	error,
-) {
+func GetPayments(
+	options PaymentListOptions,
+) (*PaymentListResponse, error) {
 
-	var payments []PaymentWithInvoice
+	// --------------------------------------------------------
+	// Safe pagination defaults
+	// --------------------------------------------------------
 
-	query := `
-		SELECT
-			p.id,
-			p.invoice_id,
-			p.amount,
-			p.payment_method,
-			p.payment_date,
-			p.reference_no,
-			p.notes,
-			p.created_at,
-			p.updated_at,
+	if options.Page <= 0 {
+		options.Page = 1
+	}
 
-			i.invoice_number,
-			i.total AS invoice_total,
-			i.status AS invoice_status,
-			i.customer_id,
+	if options.PageSize <= 0 {
+		options.PageSize = 20
+	}
 
-			COALESCE(
-				NULLIF(
-					TRIM(c.display_name),
-					''
-				),
-				'-'
-			) AS customer_name
+	if options.PageSize > 100 {
+		options.PageSize = 100
+	}
 
-		FROM payments p
+	// --------------------------------------------------------
+	// Clean search
+	// --------------------------------------------------------
 
-		INNER JOIN invoices i
-			ON i.id = p.invoice_id
+	options.Search =
+		strings.TrimSpace(
+			options.Search,
+		)
 
-		LEFT JOIN customers c
-			ON c.id = i.customer_id
+	// --------------------------------------------------------
+	// Clean payment method
+	// --------------------------------------------------------
 
-		ORDER BY
-			p.payment_date DESC,
-			p.id DESC
-	`
+	options.PaymentMethod =
+		strings.ToUpper(
+			strings.TrimSpace(
+				options.PaymentMethod,
+			),
+		)
 
-	err := db.DB.Select(
-		&payments,
-		query,
-	)
+	if options.PaymentMethod != "" &&
+		!isValidPaymentMethod(
+			options.PaymentMethod,
+		) {
+
+		return nil, fmt.Errorf(
+			"invalid payment method filter: %s",
+			options.PaymentMethod,
+		)
+	}
+
+	// --------------------------------------------------------
+	// Safe sorting
+	// --------------------------------------------------------
+
+	sortColumn, err :=
+		getPaymentSortColumn(
+			options.SortBy,
+		)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if payments == nil {
-		payments = []PaymentWithInvoice{}
+	sortOrder, err :=
+		getPaymentSortOrder(
+			options.SortOrder,
+		)
+
+	if err != nil {
+		return nil, err
 	}
 
-	return payments, nil
+	// --------------------------------------------------------
+	// Build WHERE
+	// --------------------------------------------------------
+
+	whereClauses :=
+		[]string{}
+
+	args :=
+		[]interface{}{}
+
+	placeholder :=
+		1
+
+	// --------------------------------------------------------
+	// Search
+	// --------------------------------------------------------
+
+	if options.Search != "" {
+
+		searchPlaceholder :=
+			fmt.Sprintf(
+				"$%d",
+				placeholder,
+			)
+
+		whereClauses =
+			append(
+				whereClauses,
+				fmt.Sprintf(
+					`
+					(
+						i.invoice_number ILIKE %s
+						OR
+						COALESCE(c.display_name, '') ILIKE %s
+						OR
+						COALESCE(p.reference_no, '') ILIKE %s
+					)
+					`,
+					searchPlaceholder,
+					searchPlaceholder,
+					searchPlaceholder,
+				),
+			)
+
+		args =
+			append(
+				args,
+				"%"+options.Search+"%",
+			)
+
+		placeholder++
+	}
+
+	// --------------------------------------------------------
+	// Payment Method Filter
+	// --------------------------------------------------------
+
+	if options.PaymentMethod != "" {
+
+		whereClauses =
+			append(
+				whereClauses,
+				fmt.Sprintf(
+					"p.payment_method = $%d",
+					placeholder,
+				),
+			)
+
+		args =
+			append(
+				args,
+				options.PaymentMethod,
+			)
+
+		placeholder++
+	}
+
+	// --------------------------------------------------------
+	// Final WHERE clause
+	// --------------------------------------------------------
+
+	whereSQL := ""
+
+	if len(whereClauses) > 0 {
+
+		whereSQL =
+			"WHERE " +
+				strings.Join(
+					whereClauses,
+					" AND ",
+				)
+	}
+
+	// ========================================================
+	// Count matching records
+	// ========================================================
+
+	var total int64
+
+	countQuery :=
+		fmt.Sprintf(
+			`
+			SELECT COUNT(*)
+
+			FROM payments p
+
+			INNER JOIN invoices i
+				ON i.id = p.invoice_id
+
+			LEFT JOIN customers c
+				ON c.id = i.customer_id
+
+			%s
+			`,
+			whereSQL,
+		)
+
+	err =
+		db.DB.Get(
+			&total,
+			countQuery,
+			args...,
+		)
+
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to count payments: %w",
+			err,
+		)
+	}
+
+	// --------------------------------------------------------
+	// Calculate offset
+	// --------------------------------------------------------
+
+	offset :=
+		(options.Page - 1) *
+			options.PageSize
+
+	// --------------------------------------------------------
+	// Add pagination placeholders
+	// --------------------------------------------------------
+
+	limitPlaceholder :=
+		placeholder
+
+	offsetPlaceholder :=
+		placeholder + 1
+
+	queryArgs :=
+		append(
+			[]interface{}{},
+			args...,
+		)
+
+	queryArgs =
+		append(
+			queryArgs,
+			options.PageSize,
+			offset,
+		)
+
+	// ========================================================
+	// Retrieve page
+	// ========================================================
+
+	var payments []PaymentWithInvoice
+
+	query :=
+		fmt.Sprintf(
+			`
+			SELECT
+				p.id,
+				p.invoice_id,
+				p.amount,
+				p.payment_method,
+				p.payment_date,
+				p.reference_no,
+				p.notes,
+				p.created_at,
+				p.updated_at,
+
+				i.invoice_number,
+				i.total AS invoice_total,
+				i.status AS invoice_status,
+				i.customer_id,
+
+				COALESCE(
+					NULLIF(
+						TRIM(c.display_name),
+						''
+					),
+					'-'
+				) AS customer_name
+
+			FROM payments p
+
+			INNER JOIN invoices i
+				ON i.id = p.invoice_id
+
+			LEFT JOIN customers c
+				ON c.id = i.customer_id
+
+			%s
+
+			ORDER BY
+				%s %s,
+				p.id DESC
+
+			LIMIT $%d
+			OFFSET $%d
+			`,
+			whereSQL,
+			sortColumn,
+			sortOrder,
+			limitPlaceholder,
+			offsetPlaceholder,
+		)
+
+	err =
+		db.DB.Select(
+			&payments,
+			query,
+			queryArgs...,
+		)
+
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to retrieve payments: %w",
+			err,
+		)
+	}
+
+	if payments == nil {
+		payments =
+			[]PaymentWithInvoice{}
+	}
+
+	// --------------------------------------------------------
+	// Calculate total pages
+	// --------------------------------------------------------
+
+	totalPages := 0
+
+	if total > 0 {
+
+		totalPages = int(
+			(total + int64(options.PageSize) - 1) /
+				int64(options.PageSize),
+		)
+	}
+
+	// --------------------------------------------------------
+	// Response
+	// --------------------------------------------------------
+
+	return &PaymentListResponse{
+
+		Payments: payments,
+
+		Pagination: PaymentPagination{
+
+			Page: options.Page,
+
+			PageSize: options.PageSize,
+
+			Total: total,
+
+			TotalPages: totalPages,
+		},
+	}, nil
 }
 
 // ============================================================
@@ -515,6 +847,9 @@ func GetPaymentByID(
 
 // ============================================================
 // Get Payments By Invoice ID
+//
+// This intentionally remains non-paginated because it is used
+// for one invoice's payment history and payment summary.
 // ============================================================
 
 func GetPaymentsByInvoiceID(
@@ -610,7 +945,8 @@ func GetPaymentsByInvoiceID(
 	}
 
 	if payments == nil {
-		payments = []PaymentWithInvoice{}
+		payments =
+			[]PaymentWithInvoice{}
 	}
 
 	invoiceTotal, err := decimal.NewFromString(
@@ -623,7 +959,8 @@ func GetPaymentsByInvoiceID(
 		)
 	}
 
-	amountPaid := decimal.Zero
+	amountPaid :=
+		decimal.Zero
 
 	for _, payment := range payments {
 
@@ -645,7 +982,9 @@ func GetPaymentsByInvoiceID(
 	}
 
 	outstandingBalance :=
-		invoiceTotal.Sub(amountPaid)
+		invoiceTotal.Sub(
+			amountPaid,
+		)
 
 	if outstandingBalance.IsNegative() {
 		outstandingBalance =
@@ -653,6 +992,7 @@ func GetPaymentsByInvoiceID(
 	}
 
 	return &InvoicePaymentSummary{
+
 		InvoiceID: invoice.ID,
 
 		InvoiceNumber: invoice.InvoiceNumber,
@@ -700,6 +1040,93 @@ func isValidPaymentMethod(
 }
 
 // ============================================================
+// Helper: Payment Sort Column
+//
+// User input is NOT placed directly into SQL.
+// Only these predefined SQL expressions are allowed.
+// ============================================================
+
+func getPaymentSortColumn(
+	sortBy string,
+) (string, error) {
+
+	sortBy =
+		strings.ToLower(
+			strings.TrimSpace(
+				sortBy,
+			),
+		)
+
+	if sortBy == "" {
+		return "p.payment_date", nil
+	}
+
+	switch sortBy {
+
+	case "payment_date":
+		return "p.payment_date", nil
+
+	case "amount":
+		return "p.amount", nil
+
+	case "invoice_number":
+		return "i.invoice_number", nil
+
+	case "customer":
+		return "c.display_name", nil
+
+	case "payment_method":
+		return "p.payment_method", nil
+
+	case "reference_no":
+		return "p.reference_no", nil
+
+	case "created_at":
+		return "p.created_at", nil
+
+	default:
+		return "", fmt.Errorf(
+			"invalid sort_by value: %s",
+			sortBy,
+		)
+	}
+}
+
+// ============================================================
+// Helper: Payment Sort Order
+// ============================================================
+
+func getPaymentSortOrder(
+	sortOrder string,
+) (string, error) {
+
+	sortOrder =
+		strings.ToLower(
+			strings.TrimSpace(
+				sortOrder,
+			),
+		)
+
+	if sortOrder == "" {
+		return "DESC", nil
+	}
+
+	switch sortOrder {
+
+	case "asc":
+		return "ASC", nil
+
+	case "desc":
+		return "DESC", nil
+
+	default:
+		return "", fmt.Errorf(
+			"sort_order must be asc or desc",
+		)
+	}
+}
+
+// ============================================================
 // Helper: Parse Payment Money
 // ============================================================
 
@@ -708,9 +1135,10 @@ func parsePaymentMoney(
 	fieldName string,
 ) (decimal.Decimal, error) {
 
-	value = strings.TrimSpace(
-		value,
-	)
+	value =
+		strings.TrimSpace(
+			value,
+		)
 
 	if value == "" {
 		return decimal.Zero, fmt.Errorf(
@@ -754,9 +1182,10 @@ func cleanOptionalString(
 		return nil
 	}
 
-	cleaned := strings.TrimSpace(
-		*value,
-	)
+	cleaned :=
+		strings.TrimSpace(
+			*value,
+		)
 
 	if cleaned == "" {
 		return nil

@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
+
 import {
-  HttpClient
+  HttpClient,
+  HttpParams
 } from '@angular/common/http';
+
 import {
   Observable
 } from 'rxjs';
@@ -11,6 +14,10 @@ import {
 } from '../../../../environments/environment';
 
 
+// ============================================================
+// Payment Method
+// ============================================================
+
 export type PaymentMethod =
   | 'CASH'
   | 'BANK_TRANSFER'
@@ -18,6 +25,10 @@ export type PaymentMethod =
   | 'E_WALLET'
   | 'OTHER';
 
+
+// ============================================================
+// Payment
+// ============================================================
 
 export interface Payment {
 
@@ -27,7 +38,8 @@ export interface Payment {
 
   amount: string | number;
 
-  payment_method: PaymentMethod | string;
+  payment_method:
+    PaymentMethod | string;
 
   payment_date: string;
 
@@ -51,6 +63,10 @@ export interface Payment {
 
 }
 
+
+// ============================================================
+// Create Payment
+// ============================================================
 
 export interface CreatePaymentRequest {
 
@@ -78,6 +94,10 @@ export interface CreatePaymentResponse {
 }
 
 
+// ============================================================
+// Invoice Payment Summary
+// ============================================================
+
 export interface InvoicePaymentSummary {
 
   invoice_id: number;
@@ -88,7 +108,8 @@ export interface InvoicePaymentSummary {
 
   amount_paid: string | number;
 
-  outstanding_balance: string | number;
+  outstanding_balance:
+    string | number;
 
   status: string;
 
@@ -99,10 +120,60 @@ export interface InvoicePaymentSummary {
 
 export interface PaymentSummaryResponse {
 
-  payment_summary: InvoicePaymentSummary;
+  payment_summary:
+    InvoicePaymentSummary;
 
 }
 
+
+// ============================================================
+// Pagination
+// ============================================================
+
+export interface PaymentPagination {
+
+  page: number;
+
+  page_size: number;
+
+  total: number;
+
+  total_pages: number;
+
+}
+
+
+export interface PaymentListResponse {
+
+  payments: Payment[];
+
+  pagination: PaymentPagination;
+
+}
+
+
+// ============================================================
+// Sorting
+// ============================================================
+
+export type PaymentSortBy =
+  | 'payment_date'
+  | 'amount'
+  | 'invoice_number'
+  | 'customer'
+  | 'payment_method'
+  | 'reference_no'
+  | 'created_at';
+
+
+export type PaymentSortOrder =
+  | 'asc'
+  | 'desc';
+
+
+// ============================================================
+// Service
+// ============================================================
 
 @Injectable({
   providedIn: 'root'
@@ -118,18 +189,73 @@ export class PaymentService {
   ) {}
 
 
-  /*
-   * Retrieve all payments.
-   */
-  getPayments(): Observable<{
-    payments: Payment[]
-  }> {
+  // ==========================================================
+  // Get Paginated Payments
+  // ==========================================================
 
-    return this.http.get<{
-      payments: Payment[]
-    }>(
+  getPayments(
+    page: number = 1,
+    pageSize: number = 20,
+    search: string = '',
+    paymentMethod: string = '',
+    sortBy: PaymentSortBy = 'payment_date',
+    sortOrder: PaymentSortOrder = 'desc'
+  ): Observable<PaymentListResponse> {
+
+    let params =
+      new HttpParams()
+        .set(
+          'page',
+          page.toString()
+        )
+        .set(
+          'page_size',
+          pageSize.toString()
+        )
+        .set(
+          'sort_by',
+          sortBy
+        )
+        .set(
+          'sort_order',
+          sortOrder
+        );
+
+
+    const cleanedSearch =
+      search.trim();
+
+    if (cleanedSearch) {
+
+      params =
+        params.set(
+          'search',
+          cleanedSearch
+        );
+
+    }
+
+
+    const cleanedMethod =
+      paymentMethod
+        .trim()
+        .toUpperCase();
+
+    if (cleanedMethod) {
+
+      params =
+        params.set(
+          'payment_method',
+          cleanedMethod
+        );
+
+    }
+
+
+    return this.http.get<PaymentListResponse>(
       `${this.apiUrl}/auth/payment`,
       {
+        params,
         withCredentials: true
       }
     );
@@ -137,9 +263,10 @@ export class PaymentService {
   }
 
 
-  /*
-   * Retrieve one payment.
-   */
+  // ==========================================================
+  // Get Payment By ID
+  // ==========================================================
+
   getPayment(
     id: number
   ): Observable<{
@@ -158,13 +285,10 @@ export class PaymentService {
   }
 
 
-  /*
-   * Retrieve payment information for one invoice.
-   *
-   * Your current backend route is:
-   *
-   * GET /auth/payment/invoice/:invoice_id
-   */
+  // ==========================================================
+  // Get Invoice Payment Summary
+  // ==========================================================
+
   getInvoicePaymentSummary(
     invoiceId: number
   ): Observable<PaymentSummaryResponse> {
@@ -179,9 +303,10 @@ export class PaymentService {
   }
 
 
-  /*
-   * Create a payment.
-   */
+  // ==========================================================
+  // Create Payment
+  // ==========================================================
+
   createPayment(
     payment: CreatePaymentRequest
   ): Observable<CreatePaymentResponse> {
