@@ -11,6 +11,36 @@ import (
 )
 
 // ============================================================
+// Stock Transaction List / Pagination Structures
+// ============================================================
+
+type StockTransactionPagination struct {
+	Page       int   `json:"page"`
+	PageSize   int   `json:"page_size"`
+	Total      int64 `json:"total"`
+	TotalPages int   `json:"total_pages"`
+}
+
+type StockTransactionListResponse struct {
+	Transactions []models.StockTransactionWithProduct `json:"transactions"`
+	Pagination   StockTransactionPagination           `json:"pagination"`
+}
+
+type StockTransactionListOptions struct {
+	Page int
+
+	PageSize int
+
+	Search string
+
+	TransactionType string
+
+	SortBy string
+
+	SortOrder string
+}
+
+// ============================================================
 // Create Stock Transaction
 //
 // Used by the normal/manual stock transaction endpoint.
@@ -54,21 +84,6 @@ func CreateStockTransaction(
 
 // ============================================================
 // Create Stock Transaction Using Existing Transaction
-//
-// Used internally when another service, such as the invoice
-// service, already has an active SQL transaction.
-//
-// This prevents:
-//
-// invoice commits
-// stock update fails
-//
-// or:
-//
-// stock commits
-// invoice update fails
-//
-// Everything is committed or rolled back together.
 // ============================================================
 
 func createStockTransactionWithTx(
@@ -125,8 +140,6 @@ func createStockTransactionWithTx(
 		)
 	}
 
-	// STOCK_IN and STOCK_OUT are represented using
-	// positive quantities.
 	if transaction.TransactionType == "STOCK_IN" ||
 		transaction.TransactionType == "STOCK_OUT" {
 
@@ -143,9 +156,9 @@ func createStockTransactionWithTx(
 	// Validate transaction type
 	// --------------------------------------------------------
 
-	if transaction.TransactionType != "STOCK_IN" &&
-		transaction.TransactionType != "STOCK_OUT" &&
-		transaction.TransactionType != "ADJUSTMENT" {
+	if !isValidStockTransactionType(
+		transaction.TransactionType,
+	) {
 
 		return fmt.Errorf(
 			"invalid transaction type: %s",
@@ -154,7 +167,7 @@ func createStockTransactionWithTx(
 	}
 
 	// --------------------------------------------------------
-	// Get current product stock and lock product row
+	// Get current product stock and lock row
 	// --------------------------------------------------------
 
 	var currentStock int
@@ -208,7 +221,7 @@ func createStockTransactionWithTx(
 		currentStock + stockChange
 
 	// --------------------------------------------------------
-	// Prevent stock going below zero
+	// Prevent negative stock
 	// --------------------------------------------------------
 
 	if newStock < 0 {
@@ -222,7 +235,7 @@ func createStockTransactionWithTx(
 	}
 
 	// --------------------------------------------------------
-	// Save stock transaction
+	// Save transaction
 	// --------------------------------------------------------
 
 	err = transaction.Save(tx)
@@ -256,8 +269,6 @@ func createStockTransactionWithTx(
 
 // ============================================================
 // Check Whether Stock Has Already Been Deducted For Invoice
-//
-// Prevents an invoice from reducing stock more than once.
 // ============================================================
 
 func hasInvoiceStockTransaction(
@@ -302,8 +313,6 @@ func hasInvoiceStockTransaction(
 
 // ============================================================
 // Deduct Invoice Stock
-//
-// Creates one STOCK_OUT transaction for each invoice item.
 // ============================================================
 
 func deductInvoiceStock(
@@ -330,10 +339,6 @@ func deductInvoiceStock(
 		)
 	}
 
-	// --------------------------------------------------------
-	// Prevent duplicate stock deduction
-	// --------------------------------------------------------
-
 	alreadyDeducted, err :=
 		hasInvoiceStockTransaction(
 			tx,
@@ -347,10 +352,6 @@ func deductInvoiceStock(
 	if alreadyDeducted {
 		return nil
 	}
-
-	// --------------------------------------------------------
-	// Build invoice stock transactions
-	// --------------------------------------------------------
 
 	referenceType :=
 		"INVOICE"
@@ -368,7 +369,6 @@ func deductInvoiceStock(
 
 		transaction :=
 			&models.StockTransaction{
-
 				ProductID: item.ProductID,
 
 				TransactionType: "STOCK_OUT",
@@ -398,9 +398,6 @@ func deductInvoiceStock(
 
 // ============================================================
 // Check Whether Invoice Stock Has Already Been Restored
-//
-// Prevents stock from being returned multiple times for the
-// same cancelled invoice.
 // ============================================================
 
 func hasInvoiceStockRestoration(
@@ -445,8 +442,6 @@ func hasInvoiceStockRestoration(
 
 // ============================================================
 // Restore Stock For Cancelled Invoice
-//
-// Creates one STOCK_IN transaction for each invoice item.
 // ============================================================
 
 func restoreInvoiceStock(
@@ -490,9 +485,10 @@ func restoreInvoiceStock(
 	if !wasDeducted {
 
 		/*
-		 * This can happen when a DRAFT invoice is cancelled.
+		 * A DRAFT invoice may be cancelled.
 		 *
-		 * No stock was deducted, so nothing should be restored.
+		 * No stock was deducted, therefore nothing
+		 * needs to be restored.
 		 */
 		return nil
 	}
@@ -535,7 +531,6 @@ func restoreInvoiceStock(
 
 		transaction :=
 			&models.StockTransaction{
-
 				ProductID: item.ProductID,
 
 				TransactionType: "STOCK_IN",
@@ -564,40 +559,311 @@ func restoreInvoiceStock(
 }
 
 // ============================================================
-// Get All Stock Transactions
+// Get Stock Transactions
+//
+// Supports:
+//
+// page
+// page_size
+// search
+// transaction_type
+// sort_by
+// sort_order
+//
+// Search checks:
+//
+// product name
+// notes
+// reference type
 // ============================================================
 
-func GetStockTransactions() (
-	[]models.StockTransactionWithProduct,
-	error,
-) {
+func GetStockTransactions(
+	options StockTransactionListOptions,
+) (*StockTransactionListResponse, error) {
 
-	var transactions []models.StockTransactionWithProduct
+	// --------------------------------------------------------
+	// Safe pagination defaults
+	// --------------------------------------------------------
 
-	query := `
-		SELECT
-			st.id,
-			st.product_id,
-			p.name AS product_name,
-			st.transaction_type,
-			st.quantity,
-			st.reference_type,
-			st.reference_id,
-			st.notes,
-			st.created_at
-		FROM stock_transactions st
-		INNER JOIN products p
-			ON p.id = st.product_id
-		ORDER BY st.id DESC
-	`
+	if options.Page <= 0 {
+		options.Page = 1
+	}
 
-	err := db.DB.Select(
-		&transactions,
-		query,
-	)
+	if options.PageSize <= 0 {
+		options.PageSize = 20
+	}
+
+	if options.PageSize > 100 {
+		options.PageSize = 100
+	}
+
+	// --------------------------------------------------------
+	// Search
+	// --------------------------------------------------------
+
+	options.Search =
+		strings.TrimSpace(
+			options.Search,
+		)
+
+	// --------------------------------------------------------
+	// Transaction type filter
+	// --------------------------------------------------------
+
+	options.TransactionType =
+		strings.ToUpper(
+			strings.TrimSpace(
+				options.TransactionType,
+			),
+		)
+
+	if options.TransactionType != "" &&
+		!isValidStockTransactionType(
+			options.TransactionType,
+		) {
+
+		return nil, fmt.Errorf(
+			"invalid transaction type filter: %s",
+			options.TransactionType,
+		)
+	}
+
+	// --------------------------------------------------------
+	// Sorting
+	// --------------------------------------------------------
+
+	sortColumn, err :=
+		getStockTransactionSortColumn(
+			options.SortBy,
+		)
 
 	if err != nil {
 		return nil, err
+	}
+
+	sortOrder, err :=
+		getStockTransactionSortOrder(
+			options.SortOrder,
+		)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// --------------------------------------------------------
+	// Build WHERE
+	// --------------------------------------------------------
+
+	whereClauses :=
+		[]string{}
+
+	args :=
+		[]interface{}{}
+
+	placeholder :=
+		1
+
+	// --------------------------------------------------------
+	// Search
+	// --------------------------------------------------------
+
+	if options.Search != "" {
+
+		searchPlaceholder :=
+			fmt.Sprintf(
+				"$%d",
+				placeholder,
+			)
+
+		whereClauses =
+			append(
+				whereClauses,
+				fmt.Sprintf(
+					`
+					(
+						p.name ILIKE %s
+						OR
+						COALESCE(st.notes, '') ILIKE %s
+						OR
+						COALESCE(st.reference_type, '') ILIKE %s
+					)
+					`,
+					searchPlaceholder,
+					searchPlaceholder,
+					searchPlaceholder,
+				),
+			)
+
+		args =
+			append(
+				args,
+				"%"+options.Search+"%",
+			)
+
+		placeholder++
+	}
+
+	// --------------------------------------------------------
+	// Transaction type
+	// --------------------------------------------------------
+
+	if options.TransactionType != "" {
+
+		whereClauses =
+			append(
+				whereClauses,
+				fmt.Sprintf(
+					"st.transaction_type = $%d",
+					placeholder,
+				),
+			)
+
+		args =
+			append(
+				args,
+				options.TransactionType,
+			)
+
+		placeholder++
+	}
+
+	// --------------------------------------------------------
+	// Final WHERE
+	// --------------------------------------------------------
+
+	whereSQL := ""
+
+	if len(whereClauses) > 0 {
+
+		whereSQL =
+			"WHERE " +
+				strings.Join(
+					whereClauses,
+					" AND ",
+				)
+	}
+
+	// ========================================================
+	// Count matching transactions
+	// ========================================================
+
+	var total int64
+
+	countQuery :=
+		fmt.Sprintf(
+			`
+			SELECT COUNT(*)
+
+			FROM stock_transactions st
+
+			INNER JOIN products p
+				ON p.id = st.product_id
+
+			%s
+			`,
+			whereSQL,
+		)
+
+	err =
+		db.DB.Get(
+			&total,
+			countQuery,
+			args...,
+		)
+
+	if err != nil {
+
+		return nil, fmt.Errorf(
+			"failed to count stock transactions: %w",
+			err,
+		)
+	}
+
+	// --------------------------------------------------------
+	// Calculate offset
+	// --------------------------------------------------------
+
+	offset :=
+		(options.Page - 1) *
+			options.PageSize
+
+	// --------------------------------------------------------
+	// Pagination placeholders
+	// --------------------------------------------------------
+
+	limitPlaceholder :=
+		placeholder
+
+	offsetPlaceholder :=
+		placeholder + 1
+
+	queryArgs :=
+		append(
+			[]interface{}{},
+			args...,
+		)
+
+	queryArgs =
+		append(
+			queryArgs,
+			options.PageSize,
+			offset,
+		)
+
+	// ========================================================
+	// Retrieve page
+	// ========================================================
+
+	var transactions []models.StockTransactionWithProduct
+
+	query :=
+		fmt.Sprintf(
+			`
+			SELECT
+				st.id,
+				st.product_id,
+				p.name AS product_name,
+				st.transaction_type,
+				st.quantity,
+				st.reference_type,
+				st.reference_id,
+				st.notes,
+				st.created_at
+
+			FROM stock_transactions st
+
+			INNER JOIN products p
+				ON p.id = st.product_id
+
+			%s
+
+			ORDER BY
+				%s %s,
+				st.id DESC
+
+			LIMIT $%d
+			OFFSET $%d
+			`,
+			whereSQL,
+			sortColumn,
+			sortOrder,
+			limitPlaceholder,
+			offsetPlaceholder,
+		)
+
+	err =
+		db.DB.Select(
+			&transactions,
+			query,
+			queryArgs...,
+		)
+
+	if err != nil {
+
+		return nil, fmt.Errorf(
+			"failed to retrieve stock transactions: %w",
+			err,
+		)
 	}
 
 	if transactions == nil {
@@ -606,7 +872,33 @@ func GetStockTransactions() (
 			[]models.StockTransactionWithProduct{}
 	}
 
-	return transactions, nil
+	// --------------------------------------------------------
+	// Calculate pages
+	// --------------------------------------------------------
+
+	totalPages := 0
+
+	if total > 0 {
+
+		totalPages = int(
+			(total + int64(options.PageSize) - 1) /
+				int64(options.PageSize),
+		)
+	}
+
+	return &StockTransactionListResponse{
+		Transactions: transactions,
+
+		Pagination: StockTransactionPagination{
+			Page: options.Page,
+
+			PageSize: options.PageSize,
+
+			Total: total,
+
+			TotalPages: totalPages,
+		},
+	}, nil
 }
 
 // ============================================================
@@ -636,9 +928,12 @@ func GetStockTransactionByID(
 			st.reference_id,
 			st.notes,
 			st.created_at
+
 		FROM stock_transactions st
+
 		INNER JOIN products p
 			ON p.id = st.product_id
+
 		WHERE st.id = $1
 	`
 
@@ -653,4 +948,119 @@ func GetStockTransactionByID(
 	}
 
 	return &transaction, nil
+}
+
+// ============================================================
+// Helper: Validate Stock Transaction Type
+// ============================================================
+
+func isValidStockTransactionType(
+	transactionType string,
+) bool {
+
+	switch transactionType {
+
+	case "STOCK_IN":
+		return true
+
+	case "STOCK_OUT":
+		return true
+
+	case "ADJUSTMENT":
+		return true
+
+	default:
+		return false
+	}
+}
+
+// ============================================================
+// Helper: Safe Stock Transaction Sort Column
+// ============================================================
+
+func getStockTransactionSortColumn(
+	sortBy string,
+) (string, error) {
+
+	sortBy =
+		strings.ToLower(
+			strings.TrimSpace(
+				sortBy,
+			),
+		)
+
+	if sortBy == "" {
+		return "st.created_at", nil
+	}
+
+	switch sortBy {
+
+	case "created_at":
+
+		return "st.created_at", nil
+
+	case "product":
+
+		return "p.name", nil
+
+	case "transaction_type":
+
+		return "st.transaction_type", nil
+
+	case "quantity":
+
+		return "st.quantity", nil
+
+	case "reference_type":
+
+		return "st.reference_type", nil
+
+	case "reference_id":
+
+		return "st.reference_id", nil
+
+	default:
+
+		return "", fmt.Errorf(
+			"invalid sort_by value: %s",
+			sortBy,
+		)
+	}
+}
+
+// ============================================================
+// Helper: Safe Stock Transaction Sort Order
+// ============================================================
+
+func getStockTransactionSortOrder(
+	sortOrder string,
+) (string, error) {
+
+	sortOrder =
+		strings.ToLower(
+			strings.TrimSpace(
+				sortOrder,
+			),
+		)
+
+	if sortOrder == "" {
+		return "DESC", nil
+	}
+
+	switch sortOrder {
+
+	case "asc":
+
+		return "ASC", nil
+
+	case "desc":
+
+		return "DESC", nil
+
+	default:
+
+		return "", fmt.Errorf(
+			"sort_order must be asc or desc",
+		)
+	}
 }

@@ -1,4 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import {
+  Component,
+  OnInit
+} from '@angular/core';
+
 import {
   AbstractControl,
   FormBuilder,
@@ -7,11 +11,20 @@ import {
   ValidationErrors,
   Validators
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+
+import {
+  CommonModule
+} from '@angular/common';
+
+import {
+  FormsModule
+} from '@angular/forms';
 
 import {
   StockTransaction,
-  StockTransactionService
+  StockTransactionService,
+  StockTransactionSortBy,
+  StockTransactionSortOrder
 } from '../../core/auth/stock-transaction/stock-transaction.service';
 
 import {
@@ -26,143 +39,375 @@ import {
 
   imports: [
     CommonModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    FormsModule
   ],
 
-  templateUrl: './stock-transaction.component.html',
-  styleUrl: './stock-transaction.component.scss'
+  templateUrl:
+    './stock-transaction.component.html',
+
+  styleUrl:
+    './stock-transaction.component.scss'
 })
-export class StockTransactionComponent implements OnInit {
+export class StockTransactionComponent
+  implements OnInit {
+
+  // ==========================================================
+  // Form
+  // ==========================================================
 
   transactionForm!: FormGroup;
 
   products: Product[] = [];
 
-  loading = false;
+  loadingProducts =
+    false;
 
-  loadingProducts = false;
+  submitting =
+    false;
 
-  submitting = false;
 
-  errorMessage = '';
+  // ==========================================================
+  // Messages
+  // ==========================================================
 
-  successMessage = '';
+  errorMessage =
+    '';
+
+  successMessage =
+    '';
+
+
+  // ==========================================================
+  // Transaction List
+  // ==========================================================
+
+  transactions:
+    StockTransaction[] = [];
+
+  loadingTransactions =
+    false;
+
+
+  // ==========================================================
+  // Pagination
+  // ==========================================================
+
+  currentPage =
+    1;
+
+  pageSize =
+    20;
+
+  totalTransactions =
+    0;
+
+  totalPages =
+    0;
+
+
+  // ==========================================================
+  // Search
+  // ==========================================================
+
+  searchText =
+    '';
+
+  search =
+    '';
+
+
+  // ==========================================================
+  // Filter
+  // ==========================================================
+
+  transactionTypeFilter =
+    '';
+
+
+  // ==========================================================
+  // Sorting
+  // ==========================================================
+
+  sortBy:
+    StockTransactionSortBy =
+      'created_at';
+
+  sortOrder:
+    StockTransactionSortOrder =
+      'desc';
 
 
   constructor(
-    private fb: FormBuilder,
-    private stockTransactionService: StockTransactionService,
-    private productService: ProductService
+    private fb:
+      FormBuilder,
+
+    private stockTransactionService:
+      StockTransactionService,
+
+    private productService:
+      ProductService
   ) {}
 
 
+  // ==========================================================
+  // Initialise
+  // ==========================================================
+
   ngOnInit(): void {
 
-    this.transactionForm = this.fb.group({
+    this.transactionForm =
+      this.fb.group({
 
-      product_id: [
-        null,
-        Validators.required
-      ],
+        product_id: [
+          null,
+          Validators.required
+        ],
 
-      transaction_type: [
-        'STOCK_IN',
-        Validators.required
-      ],
+        transaction_type: [
+          'STOCK_IN',
+          Validators.required
+        ],
 
-      quantity: [
-        null,
-        [
-          Validators.required,
-          Validators.min(1)
+        quantity: [
+          null,
+          [
+            Validators.required,
+            Validators.min(1)
+          ]
+        ],
+
+        notes: [
+          '',
+          Validators.maxLength(
+            1000
+          )
         ]
-      ],
 
-      notes: [
-        '',
-        Validators.maxLength(1000)
-      ]
-
-    });
+      });
 
 
     this.loadProducts();
 
+    this.loadTransactions();
+
   }
 
+
+  // ==========================================================
+  // Load Products
+  // ==========================================================
 
   loadProducts(): void {
 
-    this.loadingProducts = true;
+    this.loadingProducts =
+      true;
 
-    this.errorMessage = '';
+    this.errorMessage =
+      '';
 
-    this.productService.getProducts().subscribe({
 
-      next: (response) => {
+    this.productService
+      .getProducts()
+      .subscribe({
 
-        console.log('Products loaded:', response);
+        next: response => {
 
-        this.products = response.products ?? [];
+          console.log(
+            'Products loaded:',
+            response
+          );
 
-        this.loadingProducts = false;
 
-      },
+          this.products =
+            response.products ??
+            [];
 
-      error: (error) => {
 
-        console.error('Failed to load products:', error);
+          this.loadingProducts =
+            false;
 
-        this.errorMessage =
-          error?.error?.error ||
-          'Failed to load products.';
+        },
 
-        this.loadingProducts = false;
 
-      }
+        error: error => {
 
-    });
+          console.error(
+            'Failed to load products:',
+            error
+          );
+
+
+          this.errorMessage =
+            error?.error?.error ||
+            'Failed to load products.';
+
+
+          this.loadingProducts =
+            false;
+
+        }
+
+      });
 
   }
 
+
+  // ==========================================================
+  // Load Transaction History
+  // ==========================================================
+
+  loadTransactions(
+    page: number = this.currentPage
+  ): void {
+
+    if (page < 1) {
+      return;
+    }
+
+
+    if (
+      this.totalPages > 0 &&
+      page > this.totalPages
+    ) {
+      return;
+    }
+
+
+    this.loadingTransactions =
+      true;
+
+
+    this.stockTransactionService
+      .getStockTransactions(
+        page,
+        this.pageSize,
+        this.search,
+        this.transactionTypeFilter,
+        this.sortBy,
+        this.sortOrder
+      )
+      .subscribe({
+
+        next: response => {
+
+          console.log(
+            'Stock transactions loaded:',
+            response
+          );
+
+
+          this.transactions =
+            response.transactions ??
+            [];
+
+
+          this.currentPage =
+            response.pagination.page;
+
+
+          this.pageSize =
+            response.pagination.page_size;
+
+
+          this.totalTransactions =
+            response.pagination.total;
+
+
+          this.totalPages =
+            response.pagination.total_pages;
+
+
+          this.loadingTransactions =
+            false;
+
+        },
+
+
+        error: error => {
+
+          console.error(
+            'Failed to load stock transactions:',
+            error
+          );
+
+
+          this.errorMessage =
+            error?.error?.error ||
+            'Failed to load stock transactions.';
+
+
+          this.loadingTransactions =
+            false;
+
+        }
+
+      });
+
+  }
+
+
+  // ==========================================================
+  // Transaction Type Change
+  // ==========================================================
 
   onTransactionTypeChange(): void {
 
     const transactionType =
-      this.transactionForm.get('transaction_type')?.value;
+      this.transactionForm
+        .get(
+          'transaction_type'
+        )
+        ?.value;
+
 
     const quantityControl =
-      this.transactionForm.get('quantity');
+      this.transactionForm
+        .get(
+          'quantity'
+        );
+
 
     if (!quantityControl) {
       return;
     }
 
 
-    quantityControl.clearValidators();
+    quantityControl
+      .clearValidators();
 
 
-    if (transactionType === 'ADJUSTMENT') {
+    if (
+      transactionType ===
+      'ADJUSTMENT'
+    ) {
 
-      quantityControl.setValidators([
-        Validators.required,
-        this.nonZeroValidator
-      ]);
+      quantityControl
+        .setValidators([
+          Validators.required,
+          this.nonZeroValidator
+        ]);
 
     } else {
 
-      quantityControl.setValidators([
-        Validators.required,
-        Validators.min(1)
-      ]);
+      quantityControl
+        .setValidators([
+          Validators.required,
+          Validators.min(1)
+        ]);
 
     }
 
 
-    quantityControl.updateValueAndValidity();
+    quantityControl
+      .updateValueAndValidity();
 
   }
 
+
+  // ==========================================================
+  // Non-Zero Validator
+  // ==========================================================
 
   nonZeroValidator(
     control: AbstractControl
@@ -172,24 +417,37 @@ export class StockTransactionComponent implements OnInit {
       control.value === null ||
       control.value === ''
     ) {
+
       return null;
+
     }
 
 
-    const value = Number(control.value);
+    const value =
+      Number(
+        control.value
+      );
 
 
-    if (isNaN(value)) {
+    if (
+      isNaN(value)
+    ) {
+
       return {
         invalidNumber: true
       };
+
     }
 
 
-    if (value === 0) {
+    if (
+      value === 0
+    ) {
+
       return {
         zero: true
       };
+
     }
 
 
@@ -198,41 +456,64 @@ export class StockTransactionComponent implements OnInit {
   }
 
 
+  // ==========================================================
+  // Create Transaction
+  // ==========================================================
+
   createTransaction(): void {
 
-    if (this.transactionForm.invalid) {
+    if (
+      this.transactionForm.invalid
+    ) {
 
-      this.transactionForm.markAllAsTouched();
+      this.transactionForm
+        .markAllAsTouched();
 
       return;
 
     }
 
 
-    this.submitting = true;
+    this.submitting =
+      true;
 
-    this.errorMessage = '';
+    this.errorMessage =
+      '';
 
-    this.successMessage = '';
+    this.successMessage =
+      '';
 
 
-    const transaction: StockTransaction = {
+    const transaction:
+      StockTransaction = {
 
-      product_id: Number(
-        this.transactionForm.value.product_id
-      ),
+        product_id:
+          Number(
+            this.transactionForm
+              .value
+              .product_id
+          ),
 
-      transaction_type:
-        this.transactionForm.value.transaction_type,
+        transaction_type:
+          this.transactionForm
+            .value
+            .transaction_type,
 
-      quantity:
-        Number(this.transactionForm.value.quantity),
+        quantity:
+          Number(
+            this.transactionForm
+              .value
+              .quantity
+          ),
 
-      notes:
-        this.transactionForm.value.notes?.trim() ||
-        undefined
+        notes:
+          this.transactionForm
+            .value
+            .notes
+            ?.trim() ||
+          undefined
 
-    };
+      };
 
 
     console.log(
@@ -242,10 +523,12 @@ export class StockTransactionComponent implements OnInit {
 
 
     this.stockTransactionService
-      .createStockTransaction(transaction)
+      .createStockTransaction(
+        transaction
+      )
       .subscribe({
 
-        next: (response) => {
+        next: response => {
 
           console.log(
             'Stock transaction created:',
@@ -258,28 +541,55 @@ export class StockTransactionComponent implements OnInit {
             'Stock transaction created successfully.';
 
 
-          this.submitting = false;
+          this.submitting =
+            false;
 
 
-          this.transactionForm.reset({
+          this.transactionForm
+            .reset({
 
-            product_id: null,
+              product_id:
+                null,
 
-            transaction_type: 'STOCK_IN',
+              transaction_type:
+                'STOCK_IN',
 
-            quantity: null,
+              quantity:
+                null,
 
-            notes: ''
+              notes:
+                ''
 
-          });
+            });
 
 
           this.onTransactionTypeChange();
 
+
+          /*
+           * Refresh products because their
+           * stock quantity has changed.
+           */
+          this.loadProducts();
+
+
+          /*
+           * Refresh transaction history.
+           *
+           * Newest transaction should appear
+           * on page 1.
+           */
+          this.currentPage =
+            1;
+
+          this.loadTransactions(
+            1
+          );
+
         },
 
 
-        error: (error) => {
+        error: error => {
 
           console.error(
             'Failed to create stock transaction:',
@@ -292,7 +602,8 @@ export class StockTransactionComponent implements OnInit {
             'Failed to create stock transaction.';
 
 
-          this.submitting = false;
+          this.submitting =
+            false;
 
         }
 
@@ -301,18 +612,581 @@ export class StockTransactionComponent implements OnInit {
   }
 
 
-  get quantityControl(): AbstractControl | null {
+  // ==========================================================
+  // Search
+  // ==========================================================
 
-    return this.transactionForm.get('quantity');
+  applySearch(): void {
+
+    this.search =
+      this.searchText
+        .trim();
+
+
+    this.currentPage =
+      1;
+
+
+    this.loadTransactions(
+      1
+    );
 
   }
 
 
-  get transactionType(): string {
+  clearSearch(): void {
 
-    return this.transactionForm.get(
-      'transaction_type'
-    )?.value;
+    this.searchText =
+      '';
+
+    this.search =
+      '';
+
+    this.currentPage =
+      1;
+
+    this.loadTransactions(
+      1
+    );
+
+  }
+
+
+  // ==========================================================
+  // Filter
+  // ==========================================================
+
+  applyTransactionTypeFilter(): void {
+
+    this.currentPage =
+      1;
+
+    this.loadTransactions(
+      1
+    );
+
+  }
+
+
+  // ==========================================================
+  // Clear Filters
+  // ==========================================================
+
+  clearFilters(): void {
+
+    this.searchText =
+      '';
+
+    this.search =
+      '';
+
+    this.transactionTypeFilter =
+      '';
+
+    this.sortBy =
+      'created_at';
+
+    this.sortOrder =
+      'desc';
+
+    this.currentPage =
+      1;
+
+    this.loadTransactions(
+      1
+    );
+
+  }
+
+
+  hasActiveFilters(): boolean {
+
+    return (
+      this.search !== '' ||
+      this.transactionTypeFilter !== ''
+    );
+
+  }
+
+
+  // ==========================================================
+  // Sorting
+  // ==========================================================
+
+  sortTransactions(
+    column:
+      StockTransactionSortBy
+  ): void {
+
+    if (
+      this.sortBy === column
+    ) {
+
+      this.sortOrder =
+        this.sortOrder === 'asc'
+          ? 'desc'
+          : 'asc';
+
+    } else {
+
+      this.sortBy =
+        column;
+
+
+      if (
+        column === 'created_at' ||
+        column === 'quantity'
+      ) {
+
+        this.sortOrder =
+          'desc';
+
+      } else {
+
+        this.sortOrder =
+          'asc';
+
+      }
+
+    }
+
+
+    this.currentPage =
+      1;
+
+    this.loadTransactions(
+      1
+    );
+
+  }
+
+
+  getSortIndicator(
+    column:
+      StockTransactionSortBy
+  ): string {
+
+    if (
+      this.sortBy !== column
+    ) {
+
+      return '';
+
+    }
+
+
+    return this.sortOrder === 'asc'
+      ? '▲'
+      : '▼';
+
+  }
+
+
+  // ==========================================================
+  // Pagination
+  // ==========================================================
+
+  previousPage(): void {
+
+    if (
+      this.currentPage <= 1 ||
+      this.loadingTransactions
+    ) {
+      return;
+    }
+
+
+    this.loadTransactions(
+      this.currentPage - 1
+    );
+
+  }
+
+
+  nextPage(): void {
+
+    if (
+      this.currentPage >=
+        this.totalPages ||
+      this.loadingTransactions
+    ) {
+      return;
+    }
+
+
+    this.loadTransactions(
+      this.currentPage + 1
+    );
+
+  }
+
+
+  goToPage(
+    page: number
+  ): void {
+
+    if (
+      page < 1 ||
+      page > this.totalPages ||
+      page === this.currentPage ||
+      this.loadingTransactions
+    ) {
+      return;
+    }
+
+
+    this.loadTransactions(
+      page
+    );
+
+  }
+
+
+  getVisiblePages(): number[] {
+
+    const pages:
+      number[] = [];
+
+
+    if (
+      this.totalPages <= 0
+    ) {
+
+      return pages;
+
+    }
+
+
+    let startPage =
+      Math.max(
+        1,
+        this.currentPage - 2
+      );
+
+
+    let endPage =
+      Math.min(
+        this.totalPages,
+        startPage + 4
+      );
+
+
+    startPage =
+      Math.max(
+        1,
+        endPage - 4
+      );
+
+
+    for (
+      let page = startPage;
+      page <= endPage;
+      page++
+    ) {
+
+      pages.push(
+        page
+      );
+
+    }
+
+
+    return pages;
+
+  }
+
+
+  getFirstRecordNumber(): number {
+
+    if (
+      this.totalTransactions === 0
+    ) {
+
+      return 0;
+
+    }
+
+
+    return (
+      (
+        this.currentPage - 1
+      ) *
+      this.pageSize
+    ) + 1;
+
+  }
+
+
+  getLastRecordNumber(): number {
+
+    if (
+      this.totalTransactions === 0
+    ) {
+
+      return 0;
+
+    }
+
+
+    return Math.min(
+      this.currentPage *
+        this.pageSize,
+      this.totalTransactions
+    );
+
+  }
+
+
+  // ==========================================================
+  // Page Size
+  // ==========================================================
+
+  changePageSize(
+    pageSize: number
+  ): void {
+
+    if (
+      !Number.isInteger(
+        pageSize
+      ) ||
+      pageSize <= 0
+    ) {
+
+      return;
+
+    }
+
+
+    this.pageSize =
+      pageSize;
+
+    this.currentPage =
+      1;
+
+    this.loadTransactions(
+      1
+    );
+
+  }
+
+
+  // ==========================================================
+  // Display Helpers
+  // ==========================================================
+
+  formatDate(
+    value?:
+      string |
+      null
+  ): string {
+
+    if (!value) {
+
+      return '-';
+
+    }
+
+
+    const date =
+      new Date(
+        value
+      );
+
+
+    if (
+      isNaN(
+        date.getTime()
+      )
+    ) {
+
+      return '-';
+
+    }
+
+
+    return date
+      .toLocaleString(
+        'en-MY',
+        {
+          year:
+            'numeric',
+
+          month:
+            'short',
+
+          day:
+            'numeric',
+
+          hour:
+            '2-digit',
+
+          minute:
+            '2-digit'
+        }
+      );
+
+  }
+
+
+  formatTransactionType(
+    transactionType?:
+      string |
+      null
+  ): string {
+
+    if (!transactionType) {
+
+      return '-';
+
+    }
+
+
+    switch (
+      transactionType
+        .toUpperCase()
+    ) {
+
+      case 'STOCK_IN':
+
+        return 'Stock In';
+
+
+      case 'STOCK_OUT':
+
+        return 'Stock Out';
+
+
+      case 'ADJUSTMENT':
+
+        return 'Adjustment';
+
+
+      default:
+
+        return transactionType;
+
+    }
+
+  }
+
+
+  getTransactionTypeClass(
+    transactionType?:
+      string |
+      null
+  ): string {
+
+    switch (
+      transactionType
+        ?.toUpperCase()
+    ) {
+
+      case 'STOCK_IN':
+
+        return (
+          'bg-green-100 text-green-700'
+        );
+
+
+      case 'STOCK_OUT':
+
+        return (
+          'bg-red-100 text-red-700'
+        );
+
+
+      case 'ADJUSTMENT':
+
+        return (
+          'bg-orange-100 text-orange-700'
+        );
+
+
+      default:
+
+        return (
+          'bg-gray-100 text-gray-700'
+        );
+
+    }
+
+  }
+
+
+  formatReference(
+    transaction:
+      StockTransaction
+  ): string {
+
+    if (
+      !transaction.reference_type
+    ) {
+
+      return '-';
+
+    }
+
+
+    if (
+      transaction.reference_id
+    ) {
+
+      return (
+        transaction.reference_type +
+        ' #' +
+        transaction.reference_id
+      );
+
+    }
+
+
+    return transaction
+      .reference_type;
+
+  }
+
+
+  // ==========================================================
+  // Form Helpers
+  // ==========================================================
+
+  get quantityControl():
+    AbstractControl | null {
+
+    return this.transactionForm
+      .get(
+        'quantity'
+      );
+
+  }
+
+
+  get transactionType():
+    string {
+
+    return this.transactionForm
+      .get(
+        'transaction_type'
+      )
+      ?.value;
+
+  }
+
+
+  // ==========================================================
+  // Track
+  // ==========================================================
+
+  trackByTransactionId(
+    index: number,
+    transaction:
+      StockTransaction
+  ): number {
+
+    return (
+      transaction.id ??
+      index
+    );
 
   }
 

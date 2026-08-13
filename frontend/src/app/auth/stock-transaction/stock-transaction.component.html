@@ -1,28 +1,58 @@
 <div class="space-y-6">
 
+  <!-- ====================================================== -->
   <!-- Header -->
+  <!-- ====================================================== -->
+
   <div>
 
-    <h1 class="text-2xl font-bold text-gray-900">
-      Stock Transaction
+    <h1
+      class="text-2xl font-bold text-gray-900"
+    >
+      Stock Transactions
     </h1>
 
-    <p class="mt-1 text-sm text-gray-500">
-      Record stock in, stock out, or inventory adjustments.
+    <p
+      class="mt-1 text-sm text-gray-500"
+    >
+      Record inventory movements and review stock transaction history.
     </p>
 
   </div>
 
 
-  <!-- Form -->
-  <div class="rounded-lg bg-white p-6 shadow">
+  <!-- ====================================================== -->
+  <!-- Manual Transaction Form -->
+  <!-- ====================================================== -->
+
+  <div
+    class="rounded-lg bg-white p-6 shadow"
+  >
+
+    <div
+      class="mb-6"
+    >
+
+      <h2
+        class="text-lg font-semibold text-gray-900"
+      >
+        New Stock Transaction
+      </h2>
+
+      <p
+        class="mt-1 text-sm text-gray-500"
+      >
+        Record stock received, stock removed, or an inventory correction.
+      </p>
+
+    </div>
+
 
     <form
       [formGroup]="transactionForm"
       (ngSubmit)="createTransaction()"
       class="space-y-6"
     >
-
 
       <!-- Product -->
       <div>
@@ -41,20 +71,34 @@
           class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
         >
 
-          <option [ngValue]="null">
+          <option
+            [ngValue]="null"
+          >
             Select product
           </option>
 
 
-          @for (product of products; track product.id) {
+          @for (
+            product of products;
+            track product.id
+          ) {
 
-            <option [ngValue]="product.id">
+            <option
+              [ngValue]="product.id"
+            >
 
               {{ product.name }}
 
-              @if (product.sku) {
+              @if (
+                product.sku
+              ) {
+
                 ({{ product.sku }})
+
               }
+
+              — Stock:
+              {{ product.stock_quantity }}
 
             </option>
 
@@ -68,7 +112,9 @@
           transactionForm.get('product_id')?.touched
         ) {
 
-          <p class="mt-1 text-sm text-red-600">
+          <p
+            class="mt-1 text-sm text-red-600"
+          >
             Product is required.
           </p>
 
@@ -95,44 +141,64 @@
           class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
         >
 
-          <option value="STOCK_IN">
+          <option
+            value="STOCK_IN"
+          >
             Stock In
           </option>
 
-          <option value="STOCK_OUT">
+          <option
+            value="STOCK_OUT"
+          >
             Stock Out
           </option>
 
-          <option value="ADJUSTMENT">
+          <option
+            value="ADJUSTMENT"
+          >
             Adjustment
           </option>
 
         </select>
 
 
-        @if (transactionType === 'STOCK_IN') {
+        @if (
+          transactionType ===
+          'STOCK_IN'
+        ) {
 
-          <p class="mt-1 text-xs text-gray-500">
+          <p
+            class="mt-1 text-xs text-gray-500"
+          >
             Add stock to the product. Quantity must be positive.
           </p>
 
         }
 
 
-        @if (transactionType === 'STOCK_OUT') {
+        @if (
+          transactionType ===
+          'STOCK_OUT'
+        ) {
 
-          <p class="mt-1 text-xs text-gray-500">
+          <p
+            class="mt-1 text-xs text-gray-500"
+          >
             Remove stock from the product. Quantity must be positive.
           </p>
 
         }
 
 
-        @if (transactionType === 'ADJUSTMENT') {
+        @if (
+          transactionType ===
+          'ADJUSTMENT'
+        ) {
 
-          <p class="mt-1 text-xs text-gray-500">
-            Correct the stock quantity. Use a positive number to
-            increase stock or a negative number to decrease stock.
+          <p
+            class="mt-1 text-xs text-gray-500"
+          >
+            Use a positive quantity to increase stock or a negative quantity to decrease it.
           </p>
 
         }
@@ -161,57 +227,61 @@
               : 'Enter quantity'
           "
           class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-        />
+        >
 
 
-        <!-- Required -->
         @if (
           quantityControl?.hasError('required') &&
           quantityControl?.touched
         ) {
 
-          <p class="mt-1 text-sm text-red-600">
+          <p
+            class="mt-1 text-sm text-red-600"
+          >
             Quantity is required.
           </p>
 
         }
 
 
-        <!-- Positive quantity for STOCK_IN / STOCK_OUT -->
         @if (
           transactionType !== 'ADJUSTMENT' &&
           quantityControl?.hasError('min') &&
           quantityControl?.touched
         ) {
 
-          <p class="mt-1 text-sm text-red-600">
+          <p
+            class="mt-1 text-sm text-red-600"
+          >
             Quantity must be at least 1.
           </p>
 
         }
 
 
-        <!-- Zero adjustment -->
         @if (
           transactionType === 'ADJUSTMENT' &&
           quantityControl?.hasError('zero') &&
           quantityControl?.touched
         ) {
 
-          <p class="mt-1 text-sm text-red-600">
+          <p
+            class="mt-1 text-sm text-red-600"
+          >
             Adjustment quantity cannot be zero.
           </p>
 
         }
 
 
-        <!-- Invalid number -->
         @if (
           quantityControl?.hasError('invalidNumber') &&
           quantityControl?.touched
         ) {
 
-          <p class="mt-1 text-sm text-red-600">
+          <p
+            class="mt-1 text-sm text-red-600"
+          >
             Please enter a valid number.
           </p>
 
@@ -245,7 +315,9 @@
           transactionForm.get('notes')?.touched
         ) {
 
-          <p class="mt-1 text-sm text-red-600">
+          <p
+            class="mt-1 text-sm text-red-600"
+          >
             Notes cannot exceed 1000 characters.
           </p>
 
@@ -255,7 +327,9 @@
 
 
       <!-- Error -->
-      @if (errorMessage) {
+      @if (
+        errorMessage
+      ) {
 
         <div
           class="rounded-md bg-red-50 p-4 text-sm text-red-600"
@@ -267,7 +341,9 @@
 
 
       <!-- Success -->
-      @if (successMessage) {
+      @if (
+        successMessage
+      ) {
 
         <div
           class="rounded-md bg-green-50 p-4 text-sm text-green-700"
@@ -278,8 +354,10 @@
       }
 
 
-      <!-- Buttons -->
-      <div class="flex justify-end gap-3">
+      <!-- Submit -->
+      <div
+        class="flex justify-end"
+      >
 
         <button
           type="submit"
@@ -288,21 +366,746 @@
             submitting ||
             loadingProducts
           "
-          class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
 
-          @if (submitting) {
+          @if (
+            submitting
+          ) {
+
             Saving...
+
           } @else {
+
             Create Transaction
+
           }
 
         </button>
 
       </div>
 
-
     </form>
+
+  </div>
+
+
+  <!-- ====================================================== -->
+  <!-- Transaction History -->
+  <!-- ====================================================== -->
+
+  <div>
+
+    <div
+      class="mb-4"
+    >
+
+      <h2
+        class="text-lg font-semibold text-gray-900"
+      >
+        Transaction History
+      </h2>
+
+      <p
+        class="mt-1 text-sm text-gray-500"
+      >
+        Manual and invoice-generated inventory movements.
+      </p>
+
+    </div>
+
+
+    <!-- ==================================================== -->
+    <!-- Search / Filters -->
+    <!-- ==================================================== -->
+
+    <div
+      class="mb-4 rounded-lg bg-white p-5 shadow"
+    >
+
+      <div
+        class="grid grid-cols-1 gap-4 lg:grid-cols-12"
+      >
+
+        <!-- Search -->
+        <div
+          class="lg:col-span-6"
+        >
+
+          <label
+            for="stockSearch"
+            class="block text-sm font-medium text-gray-700"
+          >
+            Search
+          </label>
+
+
+          <div
+            class="mt-1 flex"
+          >
+
+            <input
+              id="stockSearch"
+              type="text"
+              [(ngModel)]="searchText"
+              (keyup.enter)="applySearch()"
+              placeholder="Product, notes or reference..."
+              class="block w-full rounded-l-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+
+
+            <button
+              type="button"
+              (click)="applySearch()"
+              [disabled]="loadingTransactions"
+              class="rounded-r-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Search
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <!-- Type Filter -->
+        <div
+          class="lg:col-span-3"
+        >
+
+          <label
+            for="transactionFilter"
+            class="block text-sm font-medium text-gray-700"
+          >
+            Transaction Type
+          </label>
+
+
+          <select
+            id="transactionFilter"
+            [(ngModel)]="transactionTypeFilter"
+            (change)="applyTransactionTypeFilter()"
+            class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          >
+
+            <option value="">
+              All Types
+            </option>
+
+            <option value="STOCK_IN">
+              Stock In
+            </option>
+
+            <option value="STOCK_OUT">
+              Stock Out
+            </option>
+
+            <option value="ADJUSTMENT">
+              Adjustment
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- Clear -->
+        <div
+          class="flex items-end lg:col-span-3"
+        >
+
+          <button
+            type="button"
+            (click)="clearFilters()"
+            [disabled]="
+              loadingTransactions ||
+              (
+                !hasActiveFilters() &&
+                sortBy === 'created_at' &&
+                sortOrder === 'desc'
+              )
+            "
+            class="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Clear Filters
+          </button>
+
+        </div>
+
+      </div>
+
+
+      @if (
+        search
+      ) {
+
+        <div
+          class="mt-4 flex items-center gap-2 text-sm"
+        >
+
+          <span
+            class="text-gray-500"
+          >
+            Searching for:
+          </span>
+
+
+          <span
+            class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 font-medium text-indigo-700"
+          >
+
+            {{ search }}
+
+            <button
+              type="button"
+              (click)="clearSearch()"
+              class="font-bold hover:text-indigo-900"
+            >
+              ×
+            </button>
+
+          </span>
+
+        </div>
+
+      }
+
+    </div>
+
+
+    <!-- ==================================================== -->
+    <!-- Loading -->
+    <!-- ==================================================== -->
+
+    @if (
+      loadingTransactions
+    ) {
+
+      <div
+        class="rounded-lg bg-white py-12 text-center text-sm text-gray-500 shadow"
+      >
+        Loading stock transactions...
+      </div>
+
+    } @else {
+
+      <!-- ================================================== -->
+      <!-- History Card -->
+      <!-- ================================================== -->
+
+      <div
+        class="overflow-hidden rounded-lg bg-white shadow"
+      >
+
+        <!-- Toolbar -->
+        @if (
+          totalTransactions > 0 ||
+          hasActiveFilters()
+        ) {
+
+          <div
+            class="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+
+            <div
+              class="text-sm text-gray-600"
+            >
+
+              @if (
+                totalTransactions > 0
+              ) {
+
+                Showing
+
+                <span
+                  class="font-semibold text-gray-900"
+                >
+                  {{ getFirstRecordNumber() }}
+                </span>
+
+                –
+
+                <span
+                  class="font-semibold text-gray-900"
+                >
+                  {{ getLastRecordNumber() }}
+                </span>
+
+                of
+
+                <span
+                  class="font-semibold text-gray-900"
+                >
+                  {{ totalTransactions }}
+                </span>
+
+                transactions
+
+              } @else {
+
+                0 matching transactions
+
+              }
+
+            </div>
+
+
+            <div
+              class="flex items-center gap-2"
+            >
+
+              <label
+                for="stockPageSize"
+                class="text-sm text-gray-600"
+              >
+                Rows per page
+              </label>
+
+
+              <select
+                id="stockPageSize"
+                [value]="pageSize"
+                (change)="
+                  changePageSize(
+                    +$any($event.target).value
+                  )
+                "
+                class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm"
+              >
+
+                <option value="10">
+                  10
+                </option>
+
+                <option value="20">
+                  20
+                </option>
+
+                <option value="50">
+                  50
+                </option>
+
+                <option value="100">
+                  100
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+        }
+
+
+        <!-- Empty -->
+        @if (
+          transactions.length === 0
+        ) {
+
+          <div
+            class="py-12 text-center"
+          >
+
+            <div
+              class="mb-3 text-4xl"
+            >
+              📦
+            </div>
+
+            <h3
+              class="text-lg font-semibold text-gray-700"
+            >
+
+              {{
+                hasActiveFilters()
+                  ? 'No matching transactions'
+                  : 'No stock transactions found'
+              }}
+
+            </h3>
+
+            <p
+              class="mt-1 text-sm text-gray-500"
+            >
+
+              {{
+                hasActiveFilters()
+                  ? 'Try changing your search or transaction type filter.'
+                  : 'Inventory movements will appear here.'
+              }}
+
+            </p>
+
+
+            @if (
+              hasActiveFilters()
+            ) {
+
+              <button
+                type="button"
+                (click)="clearFilters()"
+                class="mt-4 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Clear Filters
+              </button>
+
+            }
+
+          </div>
+
+        } @else {
+
+          <!-- ============================================== -->
+          <!-- Table -->
+          <!-- ============================================== -->
+
+          <div
+            class="overflow-x-auto"
+          >
+
+            <table
+              class="min-w-full divide-y divide-gray-200"
+            >
+
+              <thead
+                class="bg-gray-50"
+              >
+
+                <tr>
+
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
+
+                    <button
+                      type="button"
+                      (click)="sortTransactions('created_at')"
+                      class="inline-flex items-center gap-1 hover:text-gray-900"
+                    >
+
+                      Date
+
+                      <span>
+                        {{ getSortIndicator('created_at') }}
+                      </span>
+
+                    </button>
+
+                  </th>
+
+
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
+
+                    <button
+                      type="button"
+                      (click)="sortTransactions('product')"
+                      class="inline-flex items-center gap-1 hover:text-gray-900"
+                    >
+
+                      Product
+
+                      <span>
+                        {{ getSortIndicator('product') }}
+                      </span>
+
+                    </button>
+
+                  </th>
+
+
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
+
+                    <button
+                      type="button"
+                      (click)="sortTransactions('transaction_type')"
+                      class="inline-flex items-center gap-1 hover:text-gray-900"
+                    >
+
+                      Type
+
+                      <span>
+                        {{ getSortIndicator('transaction_type') }}
+                      </span>
+
+                    </button>
+
+                  </th>
+
+
+                  <th
+                    class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
+
+                    <button
+                      type="button"
+                      (click)="sortTransactions('quantity')"
+                      class="inline-flex items-center gap-1 hover:text-gray-900"
+                    >
+
+                      Quantity
+
+                      <span>
+                        {{ getSortIndicator('quantity') }}
+                      </span>
+
+                    </button>
+
+                  </th>
+
+
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
+
+                    <button
+                      type="button"
+                      (click)="sortTransactions('reference_type')"
+                      class="inline-flex items-center gap-1 hover:text-gray-900"
+                    >
+
+                      Reference
+
+                      <span>
+                        {{ getSortIndicator('reference_type') }}
+                      </span>
+
+                    </button>
+
+                  </th>
+
+
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
+                    Notes
+                  </th>
+
+                </tr>
+
+              </thead>
+
+
+              <tbody
+                class="divide-y divide-gray-200 bg-white"
+              >
+
+                <tr
+                  *ngFor="
+                    let transaction of transactions;
+                    trackBy: trackByTransactionId
+                  "
+                  class="hover:bg-gray-50"
+                >
+
+                  <!-- Date -->
+                  <td
+                    class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+                  >
+                    {{ formatDate(transaction.created_at) }}
+                  </td>
+
+
+                  <!-- Product -->
+                  <td
+                    class="px-6 py-4 text-sm font-medium text-gray-900"
+                  >
+                    {{
+                      transaction.product_name ||
+                      (
+                        'Product #' +
+                        transaction.product_id
+                      )
+                    }}
+                  </td>
+
+
+                  <!-- Type -->
+                  <td
+                    class="whitespace-nowrap px-6 py-4"
+                  >
+
+                    <span
+                      class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
+                      [ngClass]="
+                        getTransactionTypeClass(
+                          transaction.transaction_type
+                        )
+                      "
+                    >
+                      {{
+                        formatTransactionType(
+                          transaction.transaction_type
+                        )
+                      }}
+                    </span>
+
+                  </td>
+
+
+                  <!-- Quantity -->
+                  <td
+                    class="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold"
+                    [ngClass]="{
+                      'text-green-700':
+                        transaction.transaction_type === 'STOCK_IN',
+
+                      'text-red-700':
+                        transaction.transaction_type === 'STOCK_OUT',
+
+                      'text-orange-700':
+                        transaction.transaction_type === 'ADJUSTMENT'
+                    }"
+                  >
+
+                    @if (
+                      transaction.transaction_type === 'STOCK_IN'
+                    ) {
+                      +
+                    }
+
+                    @if (
+                      transaction.transaction_type === 'STOCK_OUT'
+                    ) {
+                      -
+                    }
+
+                    {{ transaction.quantity }}
+
+                  </td>
+
+
+                  <!-- Reference -->
+                  <td
+                    class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+                  >
+                    {{ formatReference(transaction) }}
+                  </td>
+
+
+                  <!-- Notes -->
+                  <td
+                    class="max-w-sm px-6 py-4 text-sm text-gray-700"
+                  >
+
+                    {{
+                      transaction.notes ||
+                      '-'
+                    }}
+
+                  </td>
+
+                </tr>
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        }
+
+
+        <!-- ================================================ -->
+        <!-- Pagination -->
+        <!-- ================================================ -->
+
+        @if (
+          totalTransactions > 0 &&
+          totalPages > 0
+        ) {
+
+          <div
+            class="flex flex-col gap-4 border-t border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+
+            <div
+              class="text-sm text-gray-600"
+            >
+
+              Page
+
+              <span
+                class="font-semibold text-gray-900"
+              >
+                {{ currentPage }}
+              </span>
+
+              of
+
+              <span
+                class="font-semibold text-gray-900"
+              >
+                {{ totalPages }}
+              </span>
+
+            </div>
+
+
+            <div
+              class="flex flex-wrap items-center gap-2"
+            >
+
+              <button
+                type="button"
+                (click)="previousPage()"
+                [disabled]="
+                  currentPage <= 1 ||
+                  loadingTransactions
+                "
+                class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+
+
+              @for (
+                page of getVisiblePages();
+                track page
+              ) {
+
+                <button
+                  type="button"
+                  (click)="goToPage(page)"
+                  [disabled]="loadingTransactions"
+                  class="min-w-10 rounded-md border px-3 py-2 text-sm font-medium shadow-sm"
+                  [ngClass]="
+                    page === currentPage
+                      ? 'border-indigo-600 bg-indigo-600 text-white'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  "
+                >
+                  {{ page }}
+                </button>
+
+              }
+
+
+              <button
+                type="button"
+                (click)="nextPage()"
+                [disabled]="
+                  currentPage >= totalPages ||
+                  loadingTransactions
+                "
+                class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+
+            </div>
+
+          </div>
+
+        }
+
+      </div>
+
+    }
 
   </div>
 
