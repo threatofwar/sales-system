@@ -1,10 +1,12 @@
 import {
   Component,
-  OnInit
+  Inject,
+  OnInit,
+  PLATFORM_ID
 } from '@angular/core';
 
 import {
-  CommonModule
+  CommonModule, isPlatformBrowser
 } from '@angular/common';
 
 import {
@@ -93,6 +95,9 @@ export class PaymentComponent
 
 
   constructor(
+    @Inject(PLATFORM_ID)
+    private platformId: Object,
+
     private paymentService:
       PaymentService,
 
@@ -106,6 +111,20 @@ export class PaymentComponent
   // ==========================================================
 
   ngOnInit(): void {
+
+    if (
+      !isPlatformBrowser(
+        this.platformId
+      )
+    ) {
+
+      console.log(
+        'PaymentComponent: skipping API calls during SSR'
+      );
+
+      return;
+
+    }
 
     this.loadPayments();
 

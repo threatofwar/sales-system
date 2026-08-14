@@ -1,5 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  Inject,
+  OnInit,
+  PLATFORM_ID
+} from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CategoryService, Category } from '../../core/auth/category/category.service';
 import { PageHeaderComponent } from '../../auth/layout/components/page-header/page-header.component';
@@ -28,11 +33,29 @@ export class CategoryComponent implements OnInit {
 
 
   constructor(
-    private categoryService: CategoryService
+    @Inject(PLATFORM_ID)
+    private platformId: Object,
+
+    private categoryService:
+      CategoryService
   ) {}
 
 
   ngOnInit(): void {
+
+    if (
+      !isPlatformBrowser(
+        this.platformId
+      )
+    ) {
+
+      console.log(
+        'CategoryComponent: skipping API calls during SSR'
+      );
+
+      return;
+
+    }
 
     this.loadCategories();
 
