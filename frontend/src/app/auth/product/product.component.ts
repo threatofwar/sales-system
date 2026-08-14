@@ -1,5 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  Inject,
+  OnInit,
+  PLATFORM_ID
+} from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 import {
@@ -28,10 +33,28 @@ export class ProductComponent implements OnInit {
   errorMessage = '';
 
   constructor(
-    private productService: ProductService
+    @Inject(PLATFORM_ID)
+    private platformId: Object,
+
+    private productService:
+      ProductService
   ) {}
 
   ngOnInit(): void {
+
+    if (
+      !isPlatformBrowser(
+        this.platformId
+      )
+    ) {
+
+      console.log(
+        'ProductComponent: skipping API calls during SSR'
+      );
+
+      return;
+
+    }
 
     this.loadProducts();
 

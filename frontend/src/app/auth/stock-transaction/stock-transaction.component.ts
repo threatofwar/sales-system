@@ -1,6 +1,8 @@
 import {
   Component,
-  OnInit
+  Inject,
+  OnInit,
+  PLATFORM_ID
 } from '@angular/core';
 
 import {
@@ -13,7 +15,8 @@ import {
 } from '@angular/forms';
 
 import {
-  CommonModule
+  CommonModule,
+  isPlatformBrowser
 } from '@angular/common';
 
 import {
@@ -139,6 +142,9 @@ export class StockTransactionComponent
 
 
   constructor(
+    @Inject(PLATFORM_ID)
+    private platformId: Object,
+
     private fb:
       FormBuilder,
 
@@ -156,6 +162,11 @@ export class StockTransactionComponent
 
   ngOnInit(): void {
 
+    /*
+    * Build the form during both SSR and browser rendering.
+    *
+    * The HTML requires transactionForm to exist.
+    */
     this.transactionForm =
       this.fb.group({
 
@@ -187,6 +198,28 @@ export class StockTransactionComponent
       });
 
 
+    /*
+    * Do not make authenticated HTTP requests
+    * from Angular's SSR environment.
+    */
+    if (
+      !isPlatformBrowser(
+        this.platformId
+      )
+    ) {
+
+      console.log(
+        'StockTransactionComponent: skipping API calls during SSR'
+      );
+
+      return;
+
+    }
+
+
+    /*
+    * Browser only.
+    */
     this.loadProducts();
 
     this.loadTransactions();

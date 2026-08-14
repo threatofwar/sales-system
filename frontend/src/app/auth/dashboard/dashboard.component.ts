@@ -1,10 +1,13 @@
 import {
   Component,
-  OnInit
+  Inject,
+  OnInit,
+  PLATFORM_ID
 } from '@angular/core';
 
 import {
-  CommonModule
+  CommonModule,
+  isPlatformBrowser
 } from '@angular/common';
 
 import {
@@ -50,6 +53,9 @@ export class DashboardComponent
 
 
   constructor(
+    @Inject(PLATFORM_ID)
+    private platformId: Object,
+
     private dashboardService:
       DashboardService,
 
@@ -63,6 +69,20 @@ export class DashboardComponent
   // ==========================================================
 
   ngOnInit(): void {
+
+    if (
+      !isPlatformBrowser(
+        this.platformId
+      )
+    ) {
+
+      console.log(
+        'DashboardComponent: skipping API calls during SSR'
+      );
+
+      return;
+
+    }
 
     this.loadDashboard();
 

@@ -1,10 +1,12 @@
 import {
   Component,
-  OnInit
+  Inject,
+  OnInit,
+  PLATFORM_ID
 } from '@angular/core';
 
 import {
-  CommonModule
+  CommonModule, isPlatformBrowser
 } from '@angular/common';
 
 import {
@@ -102,12 +104,15 @@ export class InvoiceComponent implements OnInit {
 
 
   constructor(
+    @Inject(PLATFORM_ID)
+    private platformId: Object,
+
     private invoiceService:
       InvoiceService,
 
     private router:
       Router
-  ) {}
+) {}
 
 
   // ==========================================================
@@ -116,9 +121,23 @@ export class InvoiceComponent implements OnInit {
 
   ngOnInit(): void {
 
+    if (
+      !isPlatformBrowser(
+        this.platformId
+      )
+    ) {
+
+      console.log(
+        'InvoiceComponent: skipping API calls during SSR'
+      );
+
+      return;
+
+    }
+
     this.loadInvoices();
 
-  }
+}
 
 
   // ==========================================================
