@@ -18,9 +18,8 @@ import (
 
 func main() {
 	// load .env file
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using system environment variables")
 	}
 
 	ALLOWORIGINS_URL := os.Getenv("ALLOWORIGINS_URL")
@@ -90,6 +89,12 @@ func main() {
 	// password reset routes
 	router.POST("/forgot-password", handlers.ForgotPasswordHandler)
 	router.POST("/reset-password", handlers.ResetPasswordHandler)
+
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+		})
+	})
 
 	// routes with auth
 	authGroup := router.Group("/auth", auth.AuthMiddleware())
