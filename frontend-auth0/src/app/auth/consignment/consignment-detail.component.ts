@@ -17,5 +17,18 @@ export class ConsignmentDetailComponent implements OnInit {
   get items(): FormArray { return this.form.get('items') as FormArray; }
   ngOnInit(): void { const id = Number(this.route.snapshot.paramMap.get('id')); this.consignments.getConsignment(id).subscribe({ next: response => { this.consignment = response.consignment; this.setupSettlement(); }, error: () => this.error = 'Unable to load this consignment.' }); }
   setupSettlement(): void { this.items.clear(); this.consignment?.items.forEach(item => this.items.push(this.fb.group({ item_id: [item.id], quantity_sold: [item.quantity_sent, [Validators.required, Validators.min(0)]], quantity_returned: [0, [Validators.required, Validators.min(0)]], quantity_damaged: [0, [Validators.required, Validators.min(0)] ] }))); }
-  submit(): void { if (!this.consignment || this.form.invalid) { this.form.markAllAsTouched(); return; } this.saving = true; this.error = ''; this.consignments.settleConsignment(this.consignment.id, this.form.getRawValue()).subscribe({ next: result => { this.result = result; this.saving = false; this.consignment!.status = 'SETTLED'; }, error: err => { this.error = err.error?.error ?? 'Unable to settle consignment.'; this.saving = false; } }); }
+  submit(): void {
+    if (!this.consignment || this.form.invalid) { this.form.markAllAsTouched(); return; }
+    this.saving = true;
+    this.error = '';
+    const rawValue = this.form.getRawValue();
+    const payload = {
+      ...rawValue,
+      payment_amount: rawValue.payment_amount === '' ? '' : String(rawValue.payment_amount)
+    };
+    this.consignments.settleConsignment(this.consignment.id, payload).subscribe({
+      next: result => { this.result = result; this.saving = false; this.consignment!.status = 'SETTLED'; },
+      error: err => { this.error = err.error?.error ?? 'Unable to settle consignment.'; this.saving = false; }
+    });
+  }
 }
