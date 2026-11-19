@@ -22,7 +22,7 @@ type ConsignmentItemInput struct {
 
 type CreateConsignmentInput struct {
 	CustomerID      int64                  `json:"customer_id"`
-	ConsignmentDate *time.Time             `json:"consignment_date,omitempty"`
+	ConsignmentDate string                 `json:"consignment_date,omitempty"`
 	CommissionRate  string                 `json:"commission_rate,omitempty"`
 	Notes           *string                `json:"notes,omitempty"`
 	Items           []ConsignmentItemInput `json:"items"`
@@ -78,8 +78,12 @@ func CreateConsignment(input *CreateConsignmentInput) (*Consignment, error) {
 		return nil, err
 	}
 	date := time.Now()
-	if input.ConsignmentDate != nil {
-		date = *input.ConsignmentDate
+	if strings.TrimSpace(input.ConsignmentDate) != "" {
+		parsedDate, parseErr := time.Parse("2006-01-02", input.ConsignmentDate)
+		if parseErr != nil {
+			return nil, fmt.Errorf("consignment date must use YYYY-MM-DD")
+		}
+		date = parsedDate
 	}
 	tx, err := db.DB.Beginx()
 	if err != nil {
