@@ -1,0 +1,103 @@
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { FormsModule, FormGroup, FormControl, ReactiveFormsModule, Validators, ValidationErrors, AbstractControl } from '@angular/forms';
+import { AuthService } from '../../../core/auth/auth.service';
+
+@Component({
+  selector: 'app-customer-create',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule
+  ],
+  templateUrl: './customer-create.component.html',
+  styleUrl: './customer-create.component.scss'
+})
+export class CustomerCreateComponent {
+
+  customer = {
+    first_name: '',
+    last_name: '',
+    phone: '',
+    address: '',
+    email: ''
+  };
+
+  countryCode = '+60';
+
+  phone = '';
+
+  countries = [
+    {
+      name: 'Malaysia',
+      code: '+60'
+    },
+    {
+      name: 'Singapore',
+      code: '+65'
+    },
+    {
+      name: 'Indonesia',
+      code: '+62'
+    },
+    {
+      name: 'Thailand',
+      code: '+66'
+    },
+    {
+      name: 'United States',
+      code: '+1'
+    },
+    {
+      name: 'United Kingdom',
+      code: '+44'
+    }
+  ];
+
+  createCustomer(): void {
+
+    const payload = {
+      first_name: this.customer.first_name,
+      last_name: this.customer.last_name,
+      phone: `${this.countryCode}${this.phone}`,
+      address: this.customer.address,
+      email: this.customer.email
+    };
+
+
+    console.log('Creating customer:', payload);
+    console.log('Creating customer:', this);
+
+  }
+
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {}
+
+  addCustomer() {
+  console.log('Add Customer clicked');
+  this.router.navigate(['/customer/new']);
+  }
+  
+
+  saveCustomer() {
+    console.log('Customer to save:', this.customer);
+
+    // TODO:
+    // Call CustomerService.createCustomer(...)
+    // then navigate back to /customer
+  }
+
+  cancel() {
+    this.router.navigate(['/customer']);
+  }
+
+  logout() {
+    this.authService.logout().subscribe({
+      next: () => console.log('Logout successful'),
+      error: (err) => console.error('Logout failed', err)
+    });
+  }
+}

@@ -1,0 +1,375 @@
+<div class="mx-auto max-w-3xl space-y-6">
+
+  <!-- Header -->
+  <div>
+
+    <h1 class="text-2xl font-bold text-gray-900">
+      Add Product
+    </h1>
+
+    <p class="mt-1 text-sm text-gray-500">
+      Create a new product.
+    </p>
+
+  </div>
+
+
+  <!-- Error -->
+  <div
+    *ngIf="errorMessage"
+    class="rounded-lg bg-red-50 p-4 text-sm text-red-600 shadow"
+  >
+    {{ errorMessage }}
+  </div>
+
+
+  <!-- Form -->
+  <div class="rounded-lg bg-white p-6 shadow">
+
+    <form
+      [formGroup]="productForm"
+      (ngSubmit)="createProduct()"
+      class="space-y-6"
+    >
+
+
+      <!-- Category -->
+      <div>
+
+        <label
+          for="category_id"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Category
+        </label>
+
+        <select
+          id="category_id"
+          formControlName="category_id"
+          class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+        >
+
+          <option [ngValue]="null">
+            Select a category
+          </option>
+
+          <option
+            *ngFor="let category of categories"
+            [ngValue]="category.id"
+          >
+            {{ category.name }}
+          </option>
+
+        </select>
+
+
+        <!-- Loading categories -->
+        <p
+          *ngIf="loadingCategories"
+          class="mt-1 text-xs text-gray-500"
+        >
+          Loading categories...
+        </p>
+
+
+        <!-- Validation -->
+        <p
+          *ngIf="
+            productForm.get('category_id')?.touched &&
+            productForm.get('category_id')?.hasError('required')
+          "
+          class="mt-1 text-sm text-red-600"
+        >
+          Category is required.
+        </p>
+
+      </div>
+
+
+      <!-- Name -->
+      <div>
+
+        <label
+          for="name"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Product Name
+        </label>
+
+        <input
+          id="name"
+          type="text"
+          formControlName="name"
+          placeholder="Chocolate Chip Cookies"
+          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+        />
+
+
+        <p
+          *ngIf="
+            productForm.get('name')?.touched &&
+            productForm.get('name')?.hasError('required')
+          "
+          class="mt-1 text-sm text-red-600"
+        >
+          Product name is required.
+        </p>
+
+
+        <p
+          *ngIf="
+            productForm.get('name')?.touched &&
+            productForm.get('name')?.hasError('maxlength')
+          "
+          class="mt-1 text-sm text-red-600"
+        >
+          Product name cannot exceed 150 characters.
+        </p>
+
+      </div>
+
+
+      <!-- Description -->
+      <div>
+
+        <label
+          for="description"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Description
+        </label>
+
+        <textarea
+          id="description"
+          formControlName="description"
+          rows="3"
+          placeholder="Classic chocolate chip cookies"
+          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+        ></textarea>
+
+      </div>
+
+
+      <!-- SKU -->
+      <div>
+
+        <label
+          for="sku"
+          class="block text-sm font-medium text-gray-700"
+        >
+          SKU
+        </label>
+
+        <input
+          id="sku"
+          type="text"
+          formControlName="sku"
+          placeholder="CK-CHOC-001"
+          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+        />
+
+        <p class="mt-1 text-xs text-gray-500">
+          Optional.
+        </p>
+
+      </div>
+
+
+      <!-- Price -->
+      <div>
+
+        <label
+          for="price"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Selling Price
+        </label>
+
+        <div class="relative mt-1">
+
+          <div
+            class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
+          >
+            <span class="text-sm text-gray-500">
+              RM
+            </span>
+          </div>
+
+          <input
+            id="price"
+            type="number"
+            step="0.01"
+            min="0"
+            formControlName="price"
+            placeholder="15.00"
+            class="block w-full rounded-md border border-gray-300 py-2 pl-10 pr-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+          />
+
+        </div>
+
+
+        <p
+          *ngIf="
+            productForm.get('price')?.touched &&
+            productForm.get('price')?.hasError('required')
+          "
+          class="mt-1 text-sm text-red-600"
+        >
+          Selling price is required.
+        </p>
+
+
+        <p
+          *ngIf="
+            productForm.get('price')?.touched &&
+            productForm.get('price')?.hasError('min')
+          "
+          class="mt-1 text-sm text-red-600"
+        >
+          Price cannot be negative.
+        </p>
+
+      </div>
+
+
+      <!-- Cost Price -->
+      <div>
+
+        <label
+          for="cost_price"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Cost Price
+        </label>
+
+        <div class="relative mt-1">
+
+          <div
+            class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
+          >
+            <span class="text-sm text-gray-500">
+              RM
+            </span>
+          </div>
+
+          <input
+            id="cost_price"
+            type="number"
+            step="0.01"
+            min="0"
+            formControlName="cost_price"
+            placeholder="8.00"
+            class="block w-full rounded-md border border-gray-300 py-2 pl-10 pr-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+          />
+
+        </div>
+
+        <p class="mt-1 text-xs text-gray-500">
+          Optional.
+        </p>
+
+      </div>
+
+
+      <!-- Stock Quantity -->
+      <div>
+
+        <label
+          for="stock_quantity"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Stock Quantity
+        </label>
+
+        <input
+          id="stock_quantity"
+          type="number"
+          min="0"
+          step="1"
+          formControlName="stock_quantity"
+          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+        />
+
+        <p
+          *ngIf="
+            productForm.get('stock_quantity')?.touched &&
+            productForm.get('stock_quantity')?.hasError('min')
+          "
+          class="mt-1 text-sm text-red-600"
+        >
+          Stock quantity cannot be negative.
+        </p>
+
+      </div>
+
+
+      <!-- Active -->
+      <div class="flex items-start">
+
+        <div class="flex h-5 items-center">
+
+          <input
+            id="is_active"
+            type="checkbox"
+            formControlName="is_active"
+            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          />
+
+        </div>
+
+        <div class="ml-3 text-sm">
+
+          <label
+            for="is_active"
+            class="font-medium text-gray-700"
+          >
+            Active
+          </label>
+
+          <p class="text-gray-500">
+            Active products can be used in sales and invoices.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <!-- Buttons -->
+      <div
+        class="flex items-center justify-end gap-3 border-t border-gray-200 pt-6"
+      >
+
+        <button
+          type="button"
+          (click)="cancel()"
+          [disabled]="submitting"
+          class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          type="submit"
+          [disabled]="submitting || loadingCategories"
+          class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+
+          <span *ngIf="!submitting">
+            Create Product
+          </span>
+
+          <span *ngIf="submitting">
+            Creating...
+          </span>
+
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</div>

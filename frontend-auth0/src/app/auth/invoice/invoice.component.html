@@ -1,0 +1,926 @@
+<div class="p-6">
+
+  <!-- ====================================================== -->
+  <!-- Header -->
+  <!-- ====================================================== -->
+
+  <div
+    class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+  >
+
+    <div>
+
+      <h1
+        class="text-2xl font-bold text-gray-800"
+      >
+        Invoices
+      </h1>
+
+      <p
+        class="mt-1 text-sm text-gray-500"
+      >
+        Manage your customer invoices
+      </p>
+
+    </div>
+
+
+    <button
+      type="button"
+      (click)="createInvoice()"
+      class="w-fit rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
+    >
+      + Create Invoice
+    </button>
+
+  </div>
+
+
+  <!-- ====================================================== -->
+  <!-- Error -->
+  <!-- ====================================================== -->
+
+  <div
+    *ngIf="errorMessage"
+    class="mb-4 rounded-lg border border-red-300 bg-red-100 p-4 text-red-700"
+  >
+
+    <div
+      class="flex items-start justify-between gap-4"
+    >
+
+      <span>
+        {{ errorMessage }}
+      </span>
+
+      <button
+        type="button"
+        (click)="errorMessage = ''"
+        class="font-semibold text-red-700 hover:text-red-900"
+      >
+        ×
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- ====================================================== -->
+  <!-- Search + Filters -->
+  <!-- ====================================================== -->
+
+  <div
+    class="mb-6 rounded-lg bg-white p-5 shadow"
+  >
+
+    <div
+      class="grid grid-cols-1 gap-4 lg:grid-cols-12"
+    >
+
+      <!-- Search -->
+      <div
+        class="lg:col-span-6"
+      >
+
+        <label
+          for="invoiceSearch"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Search
+        </label>
+
+
+        <div
+          class="mt-1 flex"
+        >
+
+          <input
+            id="invoiceSearch"
+            type="text"
+            [(ngModel)]="searchText"
+            (keyup.enter)="applySearch()"
+            placeholder="Invoice number or customer name..."
+            class="block w-full rounded-l-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          >
+
+
+          <button
+            type="button"
+            (click)="applySearch()"
+            [disabled]="loading"
+            class="rounded-r-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Search
+          </button>
+
+        </div>
+
+
+        <p
+          class="mt-1 text-xs text-gray-500"
+        >
+          Search across all invoices, not only the current page.
+        </p>
+
+      </div>
+
+
+      <!-- Status -->
+      <div
+        class="lg:col-span-3"
+      >
+
+        <label
+          for="invoiceStatus"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Status
+        </label>
+
+
+        <select
+          id="invoiceStatus"
+          [(ngModel)]="statusFilter"
+          (change)="applyStatusFilter()"
+          class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+        >
+
+          <option value="">
+            All Statuses
+          </option>
+
+          <option value="DRAFT">
+            DRAFT
+          </option>
+
+          <option value="ISSUED">
+            ISSUED
+          </option>
+
+          <option value="PARTIAL">
+            PARTIAL
+          </option>
+
+          <option value="PAID">
+            PAID
+          </option>
+
+          <option value="CANCELLED">
+            CANCELLED
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- Clear -->
+      <div
+        class="flex items-end lg:col-span-3"
+      >
+
+        <button
+          type="button"
+          (click)="clearFilters()"
+          [disabled]="
+            loading ||
+            (
+              !hasActiveFilters() &&
+              sortBy === 'created_at' &&
+              sortOrder === 'desc'
+            )
+          "
+          class="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Clear Filters
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- Active Search -->
+    <div
+      *ngIf="search"
+      class="mt-4 flex flex-wrap items-center gap-2 text-sm"
+    >
+
+      <span class="text-gray-500">
+        Searching for:
+      </span>
+
+      <span
+        class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-700"
+      >
+
+        {{ search }}
+
+        <button
+          type="button"
+          (click)="clearSearch()"
+          class="font-bold hover:text-blue-900"
+        >
+          ×
+        </button>
+
+      </span>
+
+    </div>
+
+  </div>
+
+
+  <!-- ====================================================== -->
+  <!-- Loading -->
+  <!-- ====================================================== -->
+
+  <div
+    *ngIf="loading"
+    class="flex items-center justify-center py-12"
+  >
+
+    <div class="text-gray-500">
+      Loading invoices...
+    </div>
+
+  </div>
+
+
+  <!-- ====================================================== -->
+  <!-- Invoice Content -->
+  <!-- ====================================================== -->
+
+  <div
+    *ngIf="!loading"
+    class="overflow-hidden rounded-lg bg-white shadow"
+  >
+
+    <!-- ==================================================== -->
+    <!-- Toolbar -->
+    <!-- ==================================================== -->
+
+    <div
+      *ngIf="
+        totalInvoices > 0 ||
+        hasActiveFilters()
+      "
+      class="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+    >
+
+      <!-- Results -->
+      <div
+        class="text-sm text-gray-600"
+      >
+
+        <ng-container
+          *ngIf="totalInvoices > 0"
+        >
+
+          Showing
+
+          <span
+            class="font-semibold text-gray-900"
+          >
+            {{ getFirstRecordNumber() }}
+          </span>
+
+          –
+
+          <span
+            class="font-semibold text-gray-900"
+          >
+            {{ getLastRecordNumber() }}
+          </span>
+
+          of
+
+          <span
+            class="font-semibold text-gray-900"
+          >
+            {{ totalInvoices }}
+          </span>
+
+          invoices
+
+        </ng-container>
+
+
+        <ng-container
+          *ngIf="
+            totalInvoices === 0 &&
+            hasActiveFilters()
+          "
+        >
+          0 matching invoices
+        </ng-container>
+
+      </div>
+
+
+      <!-- Page Size -->
+      <div
+        class="flex items-center gap-2"
+      >
+
+        <label
+          for="invoicePageSize"
+          class="text-sm text-gray-600"
+        >
+          Rows per page
+        </label>
+
+
+        <select
+          id="invoicePageSize"
+          [value]="pageSize"
+          (change)="
+            changePageSize(
+              +$any($event.target).value
+            )
+          "
+          class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+        >
+
+          <option value="10">
+            10
+          </option>
+
+          <option value="20">
+            20
+          </option>
+
+          <option value="50">
+            50
+          </option>
+
+          <option value="100">
+            100
+          </option>
+
+        </select>
+
+      </div>
+
+    </div>
+
+
+    <!-- ==================================================== -->
+    <!-- Empty State -->
+    <!-- ==================================================== -->
+
+    <div
+      *ngIf="invoices.length === 0"
+      class="py-12 text-center"
+    >
+
+      <div
+        class="mb-4 text-5xl text-gray-400"
+      >
+        📄
+      </div>
+
+
+      <ng-container
+        *ngIf="hasActiveFilters(); else noInvoices"
+      >
+
+        <h2
+          class="text-lg font-semibold text-gray-700"
+        >
+          No matching invoices
+        </h2>
+
+        <p
+          class="mt-1 text-sm text-gray-500"
+        >
+          Try changing your search or status filter.
+        </p>
+
+        <button
+          type="button"
+          (click)="clearFilters()"
+          class="mt-4 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        >
+          Clear Filters
+        </button>
+
+      </ng-container>
+
+
+      <ng-template
+        #noInvoices
+      >
+
+        <h2
+          class="text-lg font-semibold text-gray-700"
+        >
+          No invoices found
+        </h2>
+
+        <p
+          class="mt-1 text-sm text-gray-500"
+        >
+          Create your first invoice to get started.
+        </p>
+
+        <button
+          type="button"
+          (click)="createInvoice()"
+          class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+        >
+          Create Invoice
+        </button>
+
+      </ng-template>
+
+    </div>
+
+
+    <!-- ==================================================== -->
+    <!-- Invoice Table -->
+    <!-- ==================================================== -->
+
+    <div
+      *ngIf="invoices.length > 0"
+      class="overflow-x-auto"
+    >
+
+      <table
+        class="min-w-full divide-y divide-gray-200"
+      >
+
+        <thead
+          class="bg-gray-50"
+        >
+
+          <tr>
+
+            <!-- Invoice -->
+            <th
+              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+            >
+
+              <button
+                type="button"
+                (click)="sortInvoices('invoice_number')"
+                class="inline-flex items-center gap-1 hover:text-gray-900"
+              >
+
+                Invoice
+
+                <span>
+                  {{
+                    getSortIndicator(
+                      'invoice_number'
+                    )
+                  }}
+                </span>
+
+              </button>
+
+            </th>
+
+
+            <!-- Customer -->
+            <th
+              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+            >
+
+              <button
+                type="button"
+                (click)="sortInvoices('customer')"
+                class="inline-flex items-center gap-1 hover:text-gray-900"
+              >
+
+                Customer
+
+                <span>
+                  {{
+                    getSortIndicator(
+                      'customer'
+                    )
+                  }}
+                </span>
+
+              </button>
+
+            </th>
+
+
+            <!-- Invoice Date -->
+            <th
+              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+            >
+
+              <button
+                type="button"
+                (click)="sortInvoices('invoice_date')"
+                class="inline-flex items-center gap-1 hover:text-gray-900"
+              >
+
+                Invoice Date
+
+                <span>
+                  {{
+                    getSortIndicator(
+                      'invoice_date'
+                    )
+                  }}
+                </span>
+
+              </button>
+
+            </th>
+
+
+            <!-- Due Date -->
+            <th
+              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+            >
+
+              <button
+                type="button"
+                (click)="sortInvoices('due_date')"
+                class="inline-flex items-center gap-1 hover:text-gray-900"
+              >
+
+                Due Date
+
+                <span>
+                  {{
+                    getSortIndicator(
+                      'due_date'
+                    )
+                  }}
+                </span>
+
+              </button>
+
+            </th>
+
+
+            <!-- Status -->
+            <th
+              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+            >
+
+              <button
+                type="button"
+                (click)="sortInvoices('status')"
+                class="inline-flex items-center gap-1 hover:text-gray-900"
+              >
+
+                Status
+
+                <span>
+                  {{
+                    getSortIndicator(
+                      'status'
+                    )
+                  }}
+                </span>
+
+              </button>
+
+            </th>
+
+
+            <!-- Total -->
+            <th
+              class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
+            >
+
+              <button
+                type="button"
+                (click)="sortInvoices('total')"
+                class="inline-flex items-center gap-1 hover:text-gray-900"
+              >
+
+                Total
+
+                <span>
+                  {{
+                    getSortIndicator(
+                      'total'
+                    )
+                  }}
+                </span>
+
+              </button>
+
+            </th>
+
+
+            <!-- Actions -->
+            <th
+              class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
+            >
+              Actions
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody
+          class="divide-y divide-gray-200 bg-white"
+        >
+
+          <tr
+            *ngFor="
+              let invoice of invoices;
+              trackBy: trackByInvoiceId
+            "
+            class="hover:bg-gray-50"
+          >
+
+            <!-- Invoice Number -->
+            <td
+              class="whitespace-nowrap px-6 py-4"
+            >
+
+              <button
+                type="button"
+                (click)="viewInvoice(invoice)"
+                class="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                {{ invoice.invoice_number }}
+              </button>
+
+            </td>
+
+
+            <!-- Customer -->
+            <td
+              class="whitespace-nowrap px-6 py-4"
+            >
+
+              <div
+                class="text-sm text-gray-900"
+              >
+
+                {{
+                  invoice.customer_name ||
+                  (
+                    'Customer #' +
+                    invoice.customer_id
+                  )
+                }}
+
+              </div>
+
+            </td>
+
+
+            <!-- Invoice Date -->
+            <td
+              class="whitespace-nowrap px-6 py-4"
+            >
+
+              <div
+                class="text-sm text-gray-700"
+              >
+                {{
+                  formatDate(
+                    invoice.invoice_date
+                  )
+                }}
+              </div>
+
+            </td>
+
+
+            <!-- Due Date -->
+            <td
+              class="whitespace-nowrap px-6 py-4"
+            >
+
+              <div
+                class="text-sm"
+                [class.text-gray-700]="invoice.due_date"
+                [class.text-gray-400]="!invoice.due_date"
+              >
+
+                {{
+                  invoice.due_date
+                    ? formatDate(
+                        invoice.due_date
+                      )
+                    : '-'
+                }}
+
+              </div>
+
+            </td>
+
+
+            <!-- Status -->
+            <td
+              class="whitespace-nowrap px-6 py-4"
+            >
+
+              <span
+                class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
+                [ngClass]="
+                  getStatusClass(
+                    invoice.status
+                  )
+                "
+              >
+                {{ invoice.status }}
+              </span>
+
+            </td>
+
+
+            <!-- Total -->
+            <td
+              class="whitespace-nowrap px-6 py-4 text-right"
+            >
+
+              <div
+                class="text-sm font-semibold text-gray-900"
+              >
+                {{
+                  formatMoney(
+                    invoice.total
+                  )
+                }}
+              </div>
+
+            </td>
+
+
+            <!-- Actions -->
+            <td
+              class="whitespace-nowrap px-6 py-4 text-right"
+            >
+
+              <div
+                class="flex justify-end gap-2"
+              >
+
+                <!-- View -->
+                <button
+                  type="button"
+                  (click)="viewInvoice(invoice)"
+                  class="rounded border border-blue-200 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50"
+                >
+                  View
+                </button>
+
+
+                <!-- Edit -->
+                <button
+                  type="button"
+                  (click)="editInvoice(invoice)"
+                  [disabled]="
+                    !canEditInvoice(invoice)
+                  "
+                  class="rounded border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Edit
+                </button>
+
+
+                <!-- Delete -->
+                <button
+                  type="button"
+                  (click)="deleteInvoice(invoice)"
+                  [disabled]="
+                    deletingInvoiceId === invoice.id ||
+                    !canDeleteInvoice(invoice)
+                  "
+                  class="rounded border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+
+                  <span
+                    *ngIf="
+                      deletingInvoiceId !==
+                      invoice.id
+                    "
+                  >
+                    Delete
+                  </span>
+
+                  <span
+                    *ngIf="
+                      deletingInvoiceId ===
+                      invoice.id
+                    "
+                  >
+                    Deleting...
+                  </span>
+
+                </button>
+
+              </div>
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+    <!-- ==================================================== -->
+    <!-- Pagination -->
+    <!-- ==================================================== -->
+
+    <div
+      *ngIf="
+        totalInvoices > 0 &&
+        totalPages > 0
+      "
+      class="flex flex-col gap-4 border-t border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+    >
+
+      <!-- Page -->
+      <div
+        class="text-sm text-gray-600"
+      >
+
+        Page
+
+        <span
+          class="font-semibold text-gray-900"
+        >
+          {{ currentPage }}
+        </span>
+
+        of
+
+        <span
+          class="font-semibold text-gray-900"
+        >
+          {{ totalPages }}
+        </span>
+
+      </div>
+
+
+      <!-- Controls -->
+      <div
+        class="flex flex-wrap items-center gap-2"
+      >
+
+        <!-- Previous -->
+        <button
+          type="button"
+          (click)="previousPage()"
+          [disabled]="
+            currentPage <= 1 ||
+            loading
+          "
+          class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Previous
+        </button>
+
+
+        <!-- Page Numbers -->
+        <button
+          *ngFor="
+            let page of getVisiblePages()
+          "
+          type="button"
+          (click)="goToPage(page)"
+          [disabled]="loading"
+          class="min-w-10 rounded-md border px-3 py-2 text-sm font-medium shadow-sm"
+          [ngClass]="
+            page === currentPage
+              ? 'border-blue-600 bg-blue-600 text-white'
+              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+          "
+        >
+          {{ page }}
+        </button>
+
+
+        <!-- Next -->
+        <button
+          type="button"
+          (click)="nextPage()"
+          [disabled]="
+            currentPage >= totalPages ||
+            loading
+          "
+          class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Next
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

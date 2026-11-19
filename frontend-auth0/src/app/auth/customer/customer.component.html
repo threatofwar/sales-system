@@ -1,0 +1,80 @@
+<div class="space-y-6">
+
+  <!-- Header -->
+  <app-page-header
+      title="Customers"
+      description="Manage all your customers."
+      addText="Add Customer"
+      addRoute="/customer/new"
+  />
+
+  <!-- Search -->
+  <app-search-box
+    placeholder="Search customers..."
+    />
+
+  <!-- Table -->
+  <div class="overflow-hidden rounded-lg bg-white shadow">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Customer
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Type
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Email
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Phone
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Address
+            </th>
+            <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Actions
+            </th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-gray-200 bg-white">
+          @for (customer of customers; track customer.id) {
+          <tr class="hover:bg-gray-50">
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
+              {{ customer.display_name }}
+            </td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
+              {{ customer.type }}
+            </td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
+              {{ getPrimaryEmail(customer) }}
+            </td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
+              {{ customer.phone }}
+            </td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
+              {{ customer.address }}
+            </td>
+            <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
+              <button
+                type="button"
+                (click)="editCustomer(customer.id!)"
+                class="mr-3 font-medium text-indigo-600 hover:text-indigo-900">
+                Edit
+              </button>
+              <button type="button"
+                (click)="deleteCustomer(customer.id!)"
+                class="font-medium text-red-600 hover:text-red-900">
+                Delete
+              </button>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

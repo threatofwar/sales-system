@@ -1,0 +1,51 @@
+<div class="flex min-h-screen flex-col justify-center bg-gray-50 px-6 py-12 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+    <h2
+      class="text-center text-2xl/9 font-bold tracking-tight text-gray-900"
+    >
+      Sales System Auth0 Test
+    </h2>
+    <p class="mt-2 text-center text-sm text-gray-600">
+      This frontend uses Auth0 Universal Login.
+    </p>
+  </div>
+
+  <div class="mt-8 rounded-lg bg-white p-6 shadow sm:mx-auto sm:w-full sm:max-w-sm">
+    @if (auth.isLoading$ | async) {
+      <p class="text-center text-sm text-gray-600">Checking login status…</p>
+    } @else {
+      @if (auth.isAuthenticated$ | async) {
+        @if (auth.user$ | async; as user) {
+          <div class="text-center">
+            <p class="text-lg font-semibold text-green-700">Auth0 login successful</p>
+            <p class="mt-2 text-sm text-gray-700">{{ user.name || user.email }}</p>
+            <p class="mt-1 break-all text-xs text-gray-500">{{ user.sub }}</p>
+          </div>
+        }
+        <div class="mt-6 space-y-3">
+          <a
+            routerLink="/dashboard"
+            class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+          >
+            Continue to dashboard
+          </a>
+          <button
+            type="button"
+            (click)="logout()"
+            class="flex w-full justify-center rounded-md border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            Log out
+          </button>
+        </div>
+      } @else {
+        <button
+          type="button"
+          (click)="login()"
+          class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+        >
+          Continue with Auth0
+        </button>
+      }
+    }
+  </div>
+</div>

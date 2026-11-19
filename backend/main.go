@@ -24,6 +24,24 @@ func main() {
 
 	ALLOWORIGINS_URL := os.Getenv("ALLOWORIGINS_URL")
 	allowedOrigins := strings.Split(ALLOWORIGINS_URL, ",")
+	if gin.Mode() != gin.ReleaseMode && !contains(allowedOrigins, "http://localhost:4201") {
+		allowedOrigins = append(allowedOrigins, "http://localhost:4201")
+	}
+
+	auth0Domain := os.Getenv("AUTH0_DOMAIN")
+	auth0Audience := os.Getenv("AUTH0_AUDIENCE")
+	if gin.Mode() != gin.ReleaseMode {
+		if auth0Domain == "" {
+			auth0Domain = "dev-tt4k8xbex7v1qfuk.us.auth0.com"
+		}
+		if auth0Audience == "" {
+			auth0Audience = "https://api.shibidi.my"
+		}
+	}
+	authMiddleware, err := auth.NewAuthMiddleware(auth0Domain, auth0Audience)
+	if err != nil {
+		log.Fatalf("Could not configure Auth0: %v", err)
+	}
 
 	// Initialize database
 	db.InitDB()
@@ -97,38 +115,15 @@ func main() {
 	})
 
 	// routes with auth
-	authGroup := router.Group("/auth", auth.AuthMiddleware())
+	authGroup := router.Group("/auth", authMiddleware)
 	authGroup.GET("/profile", func(c *gin.Context) {
-		username, exists := c.Get("username")
+		subject, exists := c.Get("auth0_subject")
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			return
 		}
-
-		user, err := services.GetUser(username.(string), true)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch user profile"})
-			return
-		}
-
-		emailDetails := []gin.H{}
-		for _, email := range user.Emails {
-			emailDetails = append(emailDetails, gin.H{
-				"id":                 email.ID,
-				"user_id":            email.UserID,
-				"email":              email.Email,
-				"verified":           email.Verified,
-				"verification_token": email.VerificationToken,
-			})
-		}
-
 		c.JSON(http.StatusOK, gin.H{
-			"id":                        user.ID,
-			"username":                  user.Username,
-			"password":                  user.Password,
-			"password_reset_token":      user.PasswordResetToken,
-			"password_reset_token_used": user.PasswordResetTokenUsed,
-			"emails":                    emailDetails,
+			"subject": subject,
 		})
 	})
 	// customer routes protected by auth middleware
@@ -186,4 +181,13 @@ func main() {
 	}
 
 	router.Run(":" + port)
+}
+
+func contains(values []string, target string) bool {
+	for _, value := range values {
+		if strings.TrimSpace(value) == target {
+			return true
+		}
+	}
+	return false
 }

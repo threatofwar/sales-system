@@ -1,0 +1,226 @@
+<header class="bg-white shadow">
+  <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <h1 class="text-3xl font-bold tracking-tight text-gray-900">
+      New Customer
+    </h1>
+  </div>
+</header>
+
+
+<main>
+  <div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+
+    <div class="mx-auto w-full max-w-3xl">
+
+      <form (ngSubmit)="createCustomer()">
+
+        <div class="space-y-12">
+
+          <!-- Customer Information -->
+          <div class="border-b border-gray-900/10 pb-12">
+
+            <h2 class="text-base font-semibold leading-7 text-gray-900">
+              Customer Information
+            </h2>
+
+            <p class="mt-1 text-sm leading-6 text-gray-600">
+              Enter customer details below.
+            </p>
+
+
+            <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+
+
+              <!-- First Name -->
+              <div class="sm:col-span-3">
+
+                <label
+                  for="first_name"
+                  class="block text-sm font-medium text-gray-900">
+                  First Name
+                </label>
+
+                <div class="mt-2">
+
+                  <input
+                    id="first_name"
+                    type="text"
+                    [(ngModel)]="customer.first_name"
+                    name="first_name"
+                    autocomplete="given-name"
+                    class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm"
+                  />
+
+                </div>
+
+              </div>
+
+
+
+              <!-- Last Name -->
+              <div class="sm:col-span-3">
+
+                <label
+                  for="last_name"
+                  class="block text-sm font-medium text-gray-900">
+                  Last Name
+                </label>
+
+                <div class="mt-2">
+
+                  <input
+                    id="last_name"
+                    type="text"
+                    [(ngModel)]="customer.last_name"
+                    name="last_name"
+                    autocomplete="family-name"
+                    class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm"
+                  />
+
+                </div>
+
+              </div>
+
+
+
+
+              <!-- Phone -->
+              <div class="sm:col-span-4">
+
+                <label
+                  for="phone"
+                  class="block text-sm font-medium text-gray-900">
+                  Phone
+                </label>
+
+
+                <div class="mt-2">
+
+                  <div
+                    class="flex rounded-md bg-white outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600">
+
+
+                    <!-- Country Code -->
+                    <select
+                      [(ngModel)]="countryCode"
+                      name="countryCode"
+                      class="rounded-l-md border-0 bg-transparent py-1.5 pl-3 pr-8 text-gray-900 focus:ring-0 sm:text-sm">
+
+                      @for(country of countries; track country.code) {
+
+                        <option [value]="country.code">
+                          {{ country.name }} ({{ country.code }})
+                        </option>
+
+                      }
+
+                    </select>
+
+
+
+                    <!-- Phone Number -->
+                    <input
+                      id="phone"
+                      type="text"
+                      [(ngModel)]="customer.phone"
+                      name="phone"
+                      placeholder="123456789"
+                      class="block min-w-0 grow border-0 bg-transparent py-1.5 px-3 text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm"
+                    />
+
+
+                  </div>
+
+                </div>
+
+              </div>
+
+
+
+
+              <!-- Email -->
+              <div class="sm:col-span-4">
+
+                <label
+                  for="email"
+                  class="block text-sm font-medium text-gray-900">
+                  Email Address
+                </label>
+
+
+                <div class="mt-2">
+
+                  <input
+                    id="email"
+                    type="email"
+                    [(ngModel)]="customer.email"
+                    name="email"
+                    autocomplete="email"
+                    class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm"
+                  />
+
+                </div>
+
+              </div>
+
+
+
+
+              <!-- Address -->
+              <div class="sm:col-span-6">
+
+                <label
+                  for="address"
+                  class="block text-sm font-medium text-gray-900">
+                  Address
+                </label>
+
+
+                <div class="mt-2">
+
+                  <textarea
+                    id="address"
+                    rows="3"
+                    [(ngModel)]="customer.address"
+                    name="address"
+                    class="block w-full rounded-md bg-white px-3 py-1.5 text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm">
+                  </textarea>
+
+                </div>
+
+              </div>
+
+
+            </div>
+
+          </div>
+
+
+
+          <!-- Buttons -->
+          <div class="mt-6 flex items-center justify-end gap-x-6">
+
+            <button
+              type="button"
+              class="text-sm font-semibold text-gray-900">
+              Cancel
+            </button>
+
+
+            <button
+              type="submit"
+              class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+              Save Customer
+            </button>
+
+          </div>
+
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+</main>

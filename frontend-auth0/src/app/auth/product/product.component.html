@@ -1,0 +1,260 @@
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">
+        Products
+      </h1>
+
+      <p class="mt-1 text-sm text-gray-500">
+        Manage all your products.
+      </p>
+    </div>
+
+    <a
+      routerLink="/product/new"
+      class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+    >
+      + Add Product
+    </a>
+
+  </div>
+
+
+  <!-- Search -->
+  <div class="rounded-lg bg-white p-4 shadow">
+
+    <div class="max-w-sm">
+
+      <input
+        type="text"
+        placeholder="Search product..."
+        class="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+      >
+
+    </div>
+
+  </div>
+
+
+  <!-- Loading -->
+  <div
+    *ngIf="loading"
+    class="rounded-lg bg-white p-6 text-center text-sm text-gray-500 shadow"
+  >
+    Loading products...
+  </div>
+
+
+  <!-- Error -->
+  <div
+    *ngIf="!loading && errorMessage"
+    class="rounded-lg bg-red-50 p-4 text-sm text-red-600 shadow"
+  >
+    {{ errorMessage }}
+  </div>
+
+
+  <!-- Table -->
+  <div
+    *ngIf="!loading && !errorMessage"
+    class="overflow-hidden rounded-lg bg-white shadow"
+  >
+
+    <div class="overflow-x-auto">
+
+      <table class="min-w-full divide-y divide-gray-200">
+
+        <thead class="bg-gray-50">
+
+          <tr>
+
+            <th
+              class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+            >
+              ID
+            </th>
+
+            <th
+              class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+            >
+              Product
+            </th>
+
+            <th
+              class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+            >
+              SKU
+            </th>
+
+            <th
+              class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+            >
+              Price
+            </th>
+
+            <th
+              class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+            >
+              Cost Price
+            </th>
+
+            <th
+              class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+            >
+              Stock
+            </th>
+
+            <th
+              class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+            >
+              Status
+            </th>
+
+            <th
+              class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500"
+            >
+              Actions
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody class="divide-y divide-gray-200 bg-white">
+
+          @for (product of products; track product.id) {
+
+            <tr class="hover:bg-gray-50">
+
+              <!-- ID -->
+              <td
+                class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+              >
+                {{ product.id }}
+              </td>
+
+
+              <!-- Product -->
+              <td class="px-6 py-4">
+
+                <div class="text-sm font-medium text-gray-900">
+                  {{ product.name }}
+                </div>
+
+                <div
+                  *ngIf="product.description"
+                  class="mt-1 text-sm text-gray-500"
+                >
+                  {{ product.description }}
+                </div>
+
+              </td>
+
+
+              <!-- SKU -->
+              <td
+                class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+              >
+                {{ product.sku || '-' }}
+              </td>
+
+
+              <!-- Price -->
+              <td
+                class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+              >
+                RM {{ product.price | number:'1.2-2' }}
+              </td>
+
+
+              <!-- Cost Price -->
+              <td
+                class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+              >
+                {{ product.cost_price != null
+                  ? ('RM ' + (product.cost_price | number:'1.2-2'))
+                  : '-'
+                }}
+              </td>
+
+
+              <!-- Stock -->
+              <td
+                class="whitespace-nowrap px-6 py-4 text-sm text-gray-700"
+              >
+                {{ product.stock_quantity }}
+              </td>
+
+
+              <!-- Status -->
+              <td class="whitespace-nowrap px-6 py-4">
+
+                <span
+                  *ngIf="product.is_active"
+                  class="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800"
+                >
+                  Active
+                </span>
+
+                <span
+                  *ngIf="!product.is_active"
+                  class="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600"
+                >
+                  Inactive
+                </span>
+
+              </td>
+
+
+              <!-- Actions -->
+              <td
+                class="whitespace-nowrap px-6 py-4 text-right text-sm"
+              >
+
+                <a
+                  [routerLink]="['/product', product.id, 'edit']"
+                  class="mr-3 font-medium text-indigo-600 hover:text-indigo-900"
+                >
+                  Edit
+                </a>
+
+                <button
+                  type="button"
+                  (click)="deleteProduct(product.id!)"
+                  class="font-medium text-red-600 hover:text-red-900"
+                >
+                  Delete
+                </button>
+
+              </td>
+
+            </tr>
+
+          }
+
+
+          <!-- Empty state -->
+          <tr *ngIf="products.length === 0">
+
+            <td
+              colspan="8"
+              class="px-6 py-8 text-center text-sm text-gray-500"
+            >
+              No products found.
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</div>
