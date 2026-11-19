@@ -34,6 +34,16 @@ export class ConsignmentCreateComponent implements OnInit {
   submit(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.saving = true; this.error = '';
-    this.consignments.createConsignment(this.form.getRawValue()).subscribe({ next: result => this.router.navigate(['/consignment', result.consignment.id]), error: err => { this.error = err.error?.error ?? 'Unable to create consignment.'; this.saving = false; } });
+    const rawValue = this.form.getRawValue();
+    const payload = {
+      ...rawValue,
+      commission_rate: String(rawValue.commission_rate),
+      items: rawValue.items.map((item: any) => ({
+        ...item,
+        unit_price: String(item.unit_price),
+        commission_rate: item.commission_rate === '' ? undefined : String(item.commission_rate)
+      }))
+    };
+    this.consignments.createConsignment(payload).subscribe({ next: result => this.router.navigate(['/consignment', result.consignment.id]), error: err => { this.error = err.error?.error ?? 'Unable to create consignment.'; this.saving = false; } });
   }
 }
