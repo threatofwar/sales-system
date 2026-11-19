@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 export interface CustomerEmail {
   id?: number;
@@ -35,7 +36,7 @@ export class CustomerService {
 
   private readonly http = inject(HttpClient);
 
-  private readonly apiUrl = 'http://localhost:8080/auth/customers';
+  private readonly apiUrl = `${environment.apiUrl}/auth/customers`;
 
   constructor() { }
 
