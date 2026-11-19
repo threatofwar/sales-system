@@ -66,6 +66,7 @@ type Consignment struct {
 	Status            string            `db:"status" json:"status"`
 	Notes             *string           `db:"notes" json:"notes,omitempty"`
 	SettledAt         *time.Time        `db:"settled_at" json:"settled_at,omitempty"`
+	InvoiceID         *int64            `db:"invoice_id" json:"invoice_id,omitempty"`
 	Items             []ConsignmentItem `json:"items"`
 }
 
@@ -146,7 +147,7 @@ func CreateConsignment(input *CreateConsignmentInput) (*Consignment, error) {
 func GetConsignments() ([]Consignment, error) {
 	var consignments []Consignment
 	err := db.DB.Select(&consignments, `SELECT c.id,c.customer_id,COALESCE(cu.company_name, CONCAT_WS(' ',cu.first_name,cu.last_name)) customer_name,
-		c.consignment_number,c.consignment_date,c.commission_rate,c.status,c.notes,c.settled_at
+		c.consignment_number,c.consignment_date,c.commission_rate,c.status,c.notes,c.settled_at,c.invoice_id
 		FROM consignments c JOIN customers cu ON cu.id=c.customer_id ORDER BY c.created_at DESC`)
 	if err != nil {
 		return nil, err
@@ -160,7 +161,7 @@ func GetConsignments() ([]Consignment, error) {
 func GetConsignmentByID(id int64) (*Consignment, error) {
 	var c Consignment
 	err := db.DB.Get(&c, `SELECT c.id,c.customer_id,COALESCE(cu.company_name, CONCAT_WS(' ',cu.first_name,cu.last_name)) customer_name,
-		c.consignment_number,c.consignment_date,c.commission_rate,c.status,c.notes,c.settled_at
+		c.consignment_number,c.consignment_date,c.commission_rate,c.status,c.notes,c.settled_at,c.invoice_id
 		FROM consignments c JOIN customers cu ON cu.id=c.customer_id WHERE c.id=$1`, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -266,7 +267,7 @@ func SettleConsignment(id int64, input *SettleConsignmentInput) (map[string]any,
 			return nil, err
 		}
 	}
-	if _, err := tx.Exec("UPDATE consignments SET status='SETTLED',settled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=$1", id); err != nil {
+	if _, err := tx.Exec("UPDATE consignments SET status='SETTLED',invoice_id=$1,settled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=$2", invoiceID, id); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {

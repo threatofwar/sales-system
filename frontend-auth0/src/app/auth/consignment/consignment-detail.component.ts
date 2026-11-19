@@ -27,7 +27,7 @@ export class ConsignmentDetailComponent implements OnInit {
       payment_amount: rawValue.payment_amount === '' ? '' : String(rawValue.payment_amount)
     };
     this.consignments.settleConsignment(this.consignment.id, payload).subscribe({
-      next: result => { this.result = result; this.saving = false; this.consignment!.status = 'SETTLED'; },
+      next: result => { this.result = result; this.saving = false; this.consignment!.status = 'SETTLED'; this.consignment!.invoice_id = result.invoice_id; },
       error: err => { this.error = err.error?.error ?? 'Unable to settle consignment.'; this.saving = false; }
     });
   }

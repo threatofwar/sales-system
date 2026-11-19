@@ -24,6 +24,7 @@ export interface Consignment {
   consignment_date: string;
   commission_rate: string;
   status: 'OPEN' | 'SETTLED' | 'CANCELLED';
+  invoice_id?: number;
   notes?: string;
   items: ConsignmentItem[];
 }
