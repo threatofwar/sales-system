@@ -159,6 +159,12 @@ func main() {
 	authGroup.GET("/stock-transaction/:id", handlers.GetStockTransactionByID)
 	authGroup.POST("/stock-transaction", handlers.CreateStockTransaction)
 
+	// consignment routes protected by auth middleware
+	authGroup.GET("/consignment", handlers.GetConsignments)
+	authGroup.GET("/consignment/:id", handlers.GetConsignmentByID)
+	authGroup.POST("/consignment", handlers.CreateConsignment)
+	authGroup.POST("/consignment/:id/settle", handlers.SettleConsignment)
+
 	// invoice routes protected by auth middleware
 	authGroup.GET("/invoice", handlers.GetInvoices)
 	authGroup.GET("/invoice/:id", handlers.GetInvoiceByID)

@@ -211,6 +211,16 @@ func createStockTransactionWithTx(
 		stockChange =
 			-transaction.Quantity
 
+	case "CONSIGNMENT_OUT":
+
+		stockChange =
+			-transaction.Quantity
+
+	case "CONSIGNMENT_RETURN":
+
+		stockChange =
+			transaction.Quantity
+
 	case "ADJUSTMENT":
 
 		stockChange =
@@ -964,6 +974,12 @@ func isValidStockTransactionType(
 		return true
 
 	case "STOCK_OUT":
+		return true
+
+	case "CONSIGNMENT_OUT":
+		return true
+
+	case "CONSIGNMENT_RETURN":
 		return true
 
 	case "ADJUSTMENT":

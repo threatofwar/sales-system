@@ -46,6 +46,10 @@ export class NavbarComponent {
     {
       name: 'Payments',
       route: '/payment'
+    },
+    {
+      name: 'Consignments',
+      route: '/consignment'
     }
   ];
 

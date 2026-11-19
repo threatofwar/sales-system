@@ -23,6 +23,9 @@ import { InvoiceCreateComponent } from './auth/invoice/invoice-create/invoice-cr
 import { InvoiceEditComponent } from './auth/invoice/invoice-edit/invoice-edit.component';
 import { InvoiceDetailComponent } from './auth/invoice/invoice-detail/invoice-detail.component';
 import { PaymentComponent } from './auth/payment/payment.component'
+import { ConsignmentComponent } from './auth/consignment/consignment.component';
+import { ConsignmentCreateComponent } from './auth/consignment/consignment-create.component';
+import { ConsignmentDetailComponent } from './auth/consignment/consignment-detail.component';
 
 export const routes: Routes = [
     // Public Routes
@@ -128,6 +131,21 @@ export const routes: Routes = [
         {
             path: 'payment',
             component: PaymentComponent
+        },
+
+        {
+            path: 'consignment',
+            component: ConsignmentComponent
+        },
+
+        {
+            path: 'consignment/new',
+            component: ConsignmentCreateComponent
+        },
+
+        {
+            path: 'consignment/:id',
+            component: ConsignmentDetailComponent
         },
 
         ]
